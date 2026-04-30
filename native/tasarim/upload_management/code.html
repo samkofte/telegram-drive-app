@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Upload Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3e577a",
+                        "background-light": "#f9fafb",
+                        "background-dark": "#1f2938",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', "Noto Sans", sans-serif;
+        }
+        /* Custom scrollbar hide for cleaner UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-gray-100 dark:bg-gray-900 h-screen w-full overflow-hidden flex justify-center items-center">
+<!-- Phone Simulator Container -->
+<div class="relative flex h-full max-h-[844px] w-full max-w-[390px] flex-col overflow-hidden bg-background-light dark:bg-background-dark shadow-2xl rounded-[3rem] border-[8px] border-gray-900">
+<!-- Status Bar Area (Mock) -->
+<div class="h-12 w-full bg-background-light dark:bg-background-dark flex justify-between items-center px-6 pt-2 z-10 shrink-0">
+<span class="text-xs font-bold text-gray-900 dark:text-white">9:41</span>
+<div class="flex gap-1.5">
+<span class="material-symbols-outlined text-xs text-gray-900 dark:text-white" style="font-size: 16px;">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-xs text-gray-900 dark:text-white" style="font-size: 16px;">wifi</span>
+<span class="material-symbols-outlined text-xs text-gray-900 dark:text-white" style="font-size: 16px;">battery_full</span>
+</div>
+</div>
+<!-- Background Dashboard Content (Blurred) -->
+<div class="flex-1 flex flex-col p-4 gap-4 overflow-hidden relative">
+<!-- Header -->
+<div class="flex justify-between items-center pb-2">
+<div>
+<h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Cloud</h1>
+<p class="text-sm text-gray-500 dark:text-gray-400">128 GB of 500 GB used</p>
+</div>
+<div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+<img alt="User" class="h-full w-full object-cover" data-alt="User profile portrait showing a smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrpCjy0FdcuGLiumn5_9FmGcAF04Zk-iKfyUSem6R-4Myg6BQxGeWuHf3OU4agt6qEWKzhro6JFETyQAXIRY14G8moiZiQej-EpDyIxAeC_CGJSoO2mrx_CvRsbla-pzKTSeUkhbqvIWIsKKLFQRg38romY0K8tXuzL2HPiulXIy_R48HvyniGV14SrQbnJZgGfnzNjCNPe0m8kLo4kc7Ih3YfIKSQHj2b1yEZqtDMctAgOcI0SUzsk9WH2ENVGLLN7y6Qh5rWnEE"/>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="h-12 w-full bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center px-4 gap-2">
+<span class="material-symbols-outlined text-gray-400">search</span>
+<span class="text-gray-400 text-sm">Search files...</span>
+</div>
+<!-- Recent Files Grid -->
+<div class="grid grid-cols-2 gap-4 mt-2">
+<div class="bg-blue-50 dark:bg-gray-800 p-4 rounded-xl flex flex-col gap-2">
+<span class="material-symbols-outlined text-blue-500 text-3xl">folder</span>
+<span class="text-sm font-medium text-gray-700 dark:text-gray-200">Documents</span>
+<span class="text-xs text-gray-500">1,240 items</span>
+</div>
+<div class="bg-purple-50 dark:bg-gray-800 p-4 rounded-xl flex flex-col gap-2">
+<span class="material-symbols-outlined text-purple-500 text-3xl">image</span>
+<span class="text-sm font-medium text-gray-700 dark:text-gray-200">Images</span>
+<span class="text-xs text-gray-500">843 items</span>
+</div>
+<div class="bg-orange-50 dark:bg-gray-800 p-4 rounded-xl flex flex-col gap-2">
+<span class="material-symbols-outlined text-orange-500 text-3xl">movie</span>
+<span class="text-sm font-medium text-gray-700 dark:text-gray-200">Media</span>
+<span class="text-xs text-gray-500">42 items</span>
+</div>
+<div class="bg-green-50 dark:bg-gray-800 p-4 rounded-xl flex flex-col gap-2">
+<span class="material-symbols-outlined text-green-500 text-3xl">work</span>
+<span class="text-sm font-medium text-gray-700 dark:text-gray-200">Work</span>
+<span class="text-xs text-gray-500">12 items</span>
+</div>
+</div>
+</div>
+<!-- Overlay / Backdrop -->
+<div class="absolute inset-0 bg-background-dark/30 dark:bg-black/60 backdrop-blur-sm z-30 transition-all duration-300"></div>
+<!-- Bottom Sheet Modal -->
+<div class="absolute bottom-0 left-0 right-0 bg-background-light dark:bg-background-dark rounded-t-[2rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.2)] z-40 transform transition-transform duration-300 ease-out max-h-[85vh] flex flex-col">
+<!-- BottomSheetHandle -->
+<div class="w-full flex justify-center pt-3 pb-1 shrink-0">
+<div class="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+</div>
+<!-- Modal Content Scrollable Area -->
+<div class="overflow-y-auto no-scrollbar pb-8">
+<!-- HeadlineText -->
+<div class="px-6 pt-4 pb-1">
+<h2 class="text-gray-900 dark:text-white tracking-tight text-2xl font-bold leading-tight">Upload Files</h2>
+<!-- BodyText -->
+<p class="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal pt-1">3 files pending</p>
+</div>
+<!-- EmptyState (Drag & Drop Zone) -->
+<div class="px-6 py-6">
+<div class="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 dark:bg-primary/10 px-6 py-10 transition-colors hover:bg-primary/10 dark:hover:bg-primary/20">
+<div class="h-14 w-14 rounded-full bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">cloud_upload</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<p class="text-gray-900 dark:text-white text-base font-semibold text-center">Tap to browse</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs text-center">or drop files here</p>
+</div>
+</div>
+</div>
+<!-- TitleText -->
+<div class="px-6 pb-4">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Active Uploads</h3>
+</div>
+<!-- File List -->
+<div class="flex flex-col gap-4 px-6 pb-6">
+<!-- File Item 1: Success -->
+<div class="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="h-10 w-10 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-red-500 dark:text-red-400">picture_as_pdf</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-center mb-1">
+<p class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">budget_report_Q3.pdf</p>
+<span class="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-emerald-600 dark:text-emerald-400 font-medium">Completed</span>
+<span class="text-gray-400">2.4 MB</span>
+</div>
+<!-- Full Progress Bar (Hidden or Green) -->
+<div class="mt-1.5 h-1 w-full rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+<div class="h-full w-full rounded-full bg-emerald-500"></div>
+</div>
+</div>
+</div>
+<!-- File Item 2: Active Upload (Zip) -->
+<div class="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+<!-- Subtle Background Progress Gradient Idea -->
+<div class="absolute bottom-0 left-0 h-[2px] bg-primary w-[45%] z-10"></div>
+<div class="h-10 w-10 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center shrink-0 z-20">
+<span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">folder_zip</span>
+</div>
+<div class="flex-1 min-w-0 z-20">
+<div class="flex justify-between items-center mb-1">
+<p class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">project_assets.zip</p>
+<button class="h-6 w-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 transition-colors">
+<span class="material-symbols-outlined text-base">close</span>
+</button>
+</div>
+<div class="flex justify-between items-center text-xs mb-1.5">
+<span class="text-primary font-medium">Uploading... 45%</span>
+<span class="text-gray-400">128 MB / 350 MB</span>
+</div>
+<!-- Progress Bar -->
+<div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700">
+<div class="h-full w-[45%] rounded-full bg-primary transition-all duration-500"></div>
+</div>
+</div>
+</div>
+<!-- File Item 3: Active Upload (Doc) -->
+<div class="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="h-10 w-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-blue-500 dark:text-blue-400">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-center mb-1">
+<p class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">meeting_notes.docx</p>
+<button class="h-6 w-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 transition-colors">
+<span class="material-symbols-outlined text-base">close</span>
+</button>
+</div>
+<div class="flex justify-between items-center text-xs mb-1.5">
+<span class="text-primary font-medium">Uploading... 12%</span>
+<span class="text-gray-400">45 KB</span>
+</div>
+<!-- Progress Bar -->
+<div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700">
+<div class="h-full w-[12%] rounded-full bg-primary transition-all duration-500"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="px-6 pb-2 pt-2">
+<button class="w-full py-3.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        Minimize to Tray
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

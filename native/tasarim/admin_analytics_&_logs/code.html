@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Analytics &amp; Logs</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3e577a",
+                        "primary-dark": "#2c3e56",
+                        "background-light": "#f9fafb",
+                        "background-dark": "#1f2938",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#374151",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'inner-light': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for logs if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Smooth fade for chart area */
+        .chart-gradient {
+            background: linear-gradient(180deg, rgba(62, 87, 122, 0.1) 0%, rgba(62, 87, 122, 0) 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-gray-100 min-h-screen flex flex-col antialiased selection:bg-primary/20 transition-colors duration-200">
+<!-- Header -->
+<header class="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-background-light/80 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50">
+<button class="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">menu</span>
+</button>
+<h1 class="text-base font-bold tracking-tight text-primary dark:text-gray-100">Analytics &amp; Logs</h1>
+<div class="flex items-center gap-2">
+<button class="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300 text-[22px]">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background-light dark:border-background-dark"></span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600">
+<img alt="Profile picture of a male administrator" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWMkggBzWMT03P7iUR3xMiQ36_g0g1WqM_LOgYyUmOKogC8GOElr3dDDIkHBSQC50xysjPQ9fq5hJR0NU9xotEOeaPFAsvqp8GO0NbEVLcYlhscc1lWzQ2iZhEAC0jgJorr9KUBy1UMIKBHvVRyWf3FTXP7wp7qYUpuj1S_YGXiO4dSxI-xecVUA7T3scwv_iwdgqQ09a6IJ5coEfWsLHRWhL7_bLv-JhC5H-DA_scEIP6r6TerzsjQWT_G58G7poUphF3rFvXghc"/>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Content -->
+<main class="flex-1 flex flex-col gap-6 p-4 pb-20 max-w-lg mx-auto w-full">
+<!-- Hero: Storage Growth Chart -->
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h2 class="text-lg font-bold text-gray-900 dark:text-white">Storage Overview</h2>
+<select class="bg-transparent text-xs font-semibold text-primary border-none focus:ring-0 cursor-pointer pr-6 py-0 dark:text-blue-300">
+<option>Last 30 Days</option>
+<option>Last 7 Days</option>
+<option>Last 90 Days</option>
+</select>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-soft border border-gray-100 dark:border-gray-700">
+<div class="flex items-end justify-between mb-6">
+<div>
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Used</p>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">24.8 TB</span>
+<span class="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+                                12%
+                            </span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs text-gray-400 dark:text-gray-500">Cap: 50 TB</p>
+</div>
+</div>
+<!-- Custom Chart SVG -->
+<div class="relative h-40 w-full overflow-hidden">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 300 100">
+<defs>
+<lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#3e577a" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#3e577a" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<!-- Grid Lines -->
+<line class="text-gray-500" stroke="currentColor" stroke-dasharray="4 4" stroke-opacity="0.05" x1="0" x2="300" y1="25" y2="25"></line>
+<line class="text-gray-500" stroke="currentColor" stroke-dasharray="4 4" stroke-opacity="0.05" x1="0" x2="300" y1="50" y2="50"></line>
+<line class="text-gray-500" stroke="currentColor" stroke-dasharray="4 4" stroke-opacity="0.05" x1="0" x2="300" y1="75" y2="75"></line>
+<!-- Area Fill -->
+<path d="M0,80 C40,80 60,40 100,50 C140,60 160,30 200,35 C240,40 260,10 300,15 V100 H0 Z" fill="url(#chartGradient)"></path>
+<!-- Line Stroke -->
+<path class="dark:stroke-blue-400" d="M0,80 C40,80 60,40 100,50 C140,60 160,30 200,35 C240,40 260,10 300,15" fill="none" stroke="#3e577a" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+<!-- Active Point Indicator -->
+<circle class="dark:stroke-blue-400 dark:fill-gray-800" cx="200" cy="35" fill="#fff" r="4" stroke="#3e577a" stroke-width="2"></circle>
+</svg>
+<!-- Tooltip approximation -->
+<div class="absolute top-[10%] left-[60%] transform -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg pointer-events-none">
+                        21.4 TB
+                    </div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+<span>Week 1</span>
+<span>Week 2</span>
+<span>Week 3</span>
+<span>Week 4</span>
+</div>
+</div>
+</section>
+<!-- Secondary Stats Grid -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 flex flex-col gap-2">
+<div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-primary dark:text-blue-300">
+<span class="material-symbols-outlined text-[20px]">group</span>
+</div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400">Active Users</p>
+<p class="text-xl font-bold text-gray-900 dark:text-white">1,240</p>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 flex flex-col gap-2">
+<div class="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-300">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400">Security Alerts</p>
+<p class="text-xl font-bold text-gray-900 dark:text-white">3</p>
+</div>
+</section>
+<!-- Activity Logs -->
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between px-1">
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Activity</h3>
+<button class="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 dark:text-blue-300 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+                    Filter
+                </button>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Log Item 1: Delete Action (High visual interest) -->
+<div class="group relative flex items-start gap-3 p-4 bg-surface-light dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all active:scale-[0.99]">
+<div class="relative">
+<img alt="Portrait of Jane Doe" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-gray-600 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWEprgv3v6ZQIevVT1-PgI3P0cw04AfjKixRJG3kem2VdX_BkNdAYc3Digr0Fq13mh9kpSRO1b6YPtscWv8Ttbi9gc0XImb3_L8jF1z3Z5q0gKZfblZLpjir_NnCvG7yeYueI_c8DWwJzJbwO0INyqYDpZRPkMhxFcFHOrzys2J5EULAYoNFC8PaomkZilWFH6jI3_Sn7oQrro5DERjktTiKSNJI5WlDt4st4cnDHesIle3SxcnryO_cuhJzkCobb4QzyQbOJTvsw"/>
+<div class="absolute -bottom-1 -right-1 bg-red-100 dark:bg-red-900/50 p-0.5 rounded-full border border-white dark:border-gray-700">
+<span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[10px] block font-bold">delete</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 pt-0.5">
+<div class="flex justify-between items-start">
+<p class="text-sm text-gray-900 dark:text-gray-100 leading-snug">
+<span class="font-bold">Jane Doe</span> deleted file
+                            </p>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2">2m ago</span>
+</div>
+<p class="text-xs font-mono text-gray-500 dark:text-gray-400 mt-1 truncate bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded w-fit max-w-full">
+                            finance_report_q3_final.pdf
+                        </p>
+</div>
+</div>
+<!-- Log Item 2: Upload Action -->
+<div class="group relative flex items-start gap-3 p-4 bg-surface-light dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all active:scale-[0.99]">
+<div class="relative">
+<img alt="Portrait of Mark Smith" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-gray-600 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAyA4gwJpJw_h5PIHUHL-dfge38LRG3ZkKUvmYorP_hBDrlMPo7qhvz6KoJaxDLEPOHEk3O-nU92mA-CSKedvgNM2khsKn9JhX4sddgQz59sC1hGqJpCvGs1Pnf1kngsW_5-YzllSI1FFbzglczM9FZUhVdZMBaaI-UNdRgFixm9C-3fotI8vwkmi-WiFQrwOhvlAEpPcXizGdM8H9l61aei1Z8SUDqdI89692JrJVsL32rovog7rs4E7M-7JIKUObnkJO7WAYhsM"/>
+<div class="absolute -bottom-1 -right-1 bg-blue-100 dark:bg-blue-900/50 p-0.5 rounded-full border border-white dark:border-gray-700">
+<span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[10px] block font-bold">upload</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 pt-0.5">
+<div class="flex justify-between items-start">
+<p class="text-sm text-gray-900 dark:text-gray-100 leading-snug">
+<span class="font-bold">Mark Smith</span> uploaded
+                            </p>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2">15m ago</span>
+</div>
+<p class="text-xs font-mono text-gray-500 dark:text-gray-400 mt-1 truncate bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded w-fit max-w-full">
+                            Project_Alpha_v2.sketch
+                        </p>
+</div>
+</div>
+<!-- Log Item 3: System Action (Archive) -->
+<div class="group relative flex items-start gap-3 p-4 bg-surface-light dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all active:scale-[0.99]">
+<div class="relative flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-white dark:border-gray-600 shadow-sm">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-300 text-[20px]">dns</span>
+<div class="absolute -bottom-1 -right-1 bg-purple-100 dark:bg-purple-900/50 p-0.5 rounded-full border border-white dark:border-gray-700">
+<span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-[10px] block font-bold">inventory_2</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 pt-0.5">
+<div class="flex justify-between items-start">
+<p class="text-sm text-gray-900 dark:text-gray-100 leading-snug">
+<span class="font-bold">System</span> archived logs
+                            </p>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2">1h ago</span>
+</div>
+<p class="text-xs font-mono text-gray-500 dark:text-gray-400 mt-1 truncate bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded w-fit max-w-full">
+                            server_logs_2023_Q2.zip
+                        </p>
+</div>
+</div>
+<!-- Log Item 4: Permission Change -->
+<div class="group relative flex items-start gap-3 p-4 bg-surface-light dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all active:scale-[0.99]">
+<div class="relative">
+<img alt="Portrait of Sarah Connor" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-gray-600 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCzsNh84r9-JNAWn7gXS3FLdvrM-S2mn4j_br5NzXUjHefB4XR8VnNuY2TamaiHfCbduuaPD4UaWHtG24waYxcgim8af0_JtFjSUedKMb5LHgKRilHRYCsAIz8v7ssTylceYO87wjOBPDvo3SKe--o9vrAOcSLZGRtAfKSG9VCQcXUL9NOCNeYmlmlIPgqfzcPtASONMNvRo_kGo6MtundFYj0wkPwcqAbJFsklRuwb_zAHwl0vEpZKfjPr5DPbqUbyiDePBfI2_U"/>
+<div class="absolute -bottom-1 -right-1 bg-amber-100 dark:bg-amber-900/50 p-0.5 rounded-full border border-white dark:border-gray-700">
+<span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[10px] block font-bold">shield</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 pt-0.5">
+<div class="flex justify-between items-start">
+<p class="text-sm text-gray-900 dark:text-gray-100 leading-snug">
+<span class="font-bold">Sarah Connor</span> changed role
+                            </p>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2">2h ago</span>
+</div>
+<div class="flex gap-2 items-center mt-1">
+<span class="text-[10px] text-gray-500 dark:text-gray-400">User: <span class="text-gray-700 dark:text-gray-300">john.d@company.com</span></span>
+<span class="material-symbols-outlined text-gray-300 text-[10px]">arrow_right_alt</span>
+<span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">Admin</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Load More -->
+<button class="w-full py-3 mt-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors border border-dashed border-gray-300 rounded-xl hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300">
+                View All Activity
+            </button>
+</section>
+</main>
+<!-- Bottom Navigation (Optional Mobile alternative to sidebar, simplified for Context) -->
+<!-- Not strictly requested but adds to the "Mobile Form Factor" completeness -->
+<!-- Hiding visually as sidebar is primary request, but this drawer structure below represents the 'Sidebar' mentioned -->
+<!-- Sidebar Overlay (Hidden by default, showing structure) -->
+<div class="fixed inset-0 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out pointer-events-none" id="mobile-sidebar">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity"></div>
+<!-- Drawer Panel -->
+<div class="absolute inset-y-0 left-0 w-3/4 max-w-xs bg-surface-light dark:bg-surface-dark shadow-2xl p-6 flex flex-col gap-6">
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">grid_view</span>
+</div>
+<h2 class="text-xl font-bold text-gray-900 dark:text-white">Admin Portal</h2>
+</div>
+<nav class="flex flex-col gap-2 flex-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary dark:text-blue-300 dark:bg-blue-900/20 font-bold" href="#">
+<span class="material-symbols-outlined fill-current">analytics</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-medium">Users &amp; Teams</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" href="#">
+<span class="material-symbols-outlined">lock</span>
+<span class="font-medium">Roles &amp; Permissions</span>
+</a>
+<div class="h-px bg-gray-100 dark:bg-gray-700 my-2 mx-4"></div>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium">Settings</span>
+</a>
+</nav>
+<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+<p class="text-xs font-semibold text-gray-400 uppercase mb-2">Storage Plan</p>
+<div class="flex justify-between items-center mb-1">
+<span class="text-sm font-bold dark:text-white">Enterprise</span>
+<span class="text-xs text-primary dark:text-blue-300">Upgrade</span>
+</div>
+<div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/2 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

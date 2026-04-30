@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Favorites &amp; Tagging</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3e577a",
+                        "background-light": "#f9fafb",
+                        "background-dark": "#1f2938",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display transition-colors duration-200">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-20 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md px-4 pt-12 pb-2">
+<div class="flex items-center justify-between">
+<h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Favorites</h2>
+<button class="text-primary dark:text-blue-300 text-base font-semibold hover:opacity-80 active:scale-95 transition-transform px-2 py-1 rounded-lg">
+                    Select
+                </button>
+</div>
+</header>
+<!-- SearchBar -->
+<div class="px-4 py-2 sticky top-[88px] z-10 bg-background-light dark:bg-background-dark">
+<div class="relative flex w-full items-center rounded-xl bg-gray-100 dark:bg-gray-800 border border-transparent focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200">
+<div class="flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-[20px]">search</span>
+</div>
+<input class="w-full flex-1 bg-transparent border-none py-2.5 pl-2 pr-4 text-base font-normal text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0" placeholder="Search favorites..." value=""/>
+</div>
+</div>
+<!-- Tag Filter Ribbon -->
+<div class="mt-2 w-full overflow-hidden">
+<div class="flex gap-3 px-4 pb-2 overflow-x-auto hide-scrollbar snap-x">
+<!-- Add Tag Action -->
+<button class="snap-start flex h-9 shrink-0 items-center justify-center gap-x-1 rounded-full border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-3 active:bg-gray-100 dark:active:bg-gray-700 transition-colors">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-[18px]">add</span>
+<span class="text-gray-600 dark:text-gray-300 text-xs font-semibold">New</span>
+</button>
+<!-- Active Tag -->
+<button class="snap-start flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-white px-4 shadow-sm shadow-primary/30">
+<span class="text-xs font-medium">All</span>
+</button>
+<!-- Inactive Tag: Work -->
+<button class="snap-start flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-4 shadow-sm active:scale-95 transition-transform">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="text-gray-700 dark:text-gray-200 text-xs font-medium">Work</span>
+</button>
+<!-- Inactive Tag: Private -->
+<button class="snap-start flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-4 shadow-sm active:scale-95 transition-transform">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<span class="text-gray-700 dark:text-gray-200 text-xs font-medium">Private</span>
+</button>
+<!-- Inactive Tag: Finance -->
+<button class="snap-start flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-4 shadow-sm active:scale-95 transition-transform">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-gray-700 dark:text-gray-200 text-xs font-medium">Finance</span>
+</button>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col gap-2 pb-24">
+<!-- Section: Folders -->
+<div class="flex flex-col">
+<div class="px-4 pt-4 pb-2 flex items-center justify-between">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold leading-tight">Folders</h3>
+<span class="text-xs font-medium text-gray-400 dark:text-gray-500">Sort by date</span>
+</div>
+<div class="grid grid-cols-2 gap-3 px-4">
+<!-- Folder Card 1 -->
+<div class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 active:shadow-md transition-shadow">
+<div class="absolute top-3 right-3 z-10">
+<span class="material-symbols-outlined text-amber-400 fill-current text-[20px]">star</span>
+</div>
+<div class="flex items-center justify-center h-20 mb-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+<span class="material-symbols-outlined text-blue-400 dark:text-blue-300 text-[48px]">folder</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<p class="text-gray-900 dark:text-white text-sm font-semibold truncate">Q4 Financials</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs">12 items</p>
+</div>
+<div class="mt-3 flex items-center justify-between">
+<div class="flex gap-1">
+<span class="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-gray-800"></span>
+</div>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Folder Card 2 -->
+<div class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 active:shadow-md transition-shadow">
+<div class="absolute top-3 right-3 z-10">
+<span class="material-symbols-outlined text-amber-400 fill-current text-[20px]">star</span>
+</div>
+<div class="flex items-center justify-center h-20 mb-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+<span class="material-symbols-outlined text-purple-400 dark:text-purple-300 text-[48px]">folder_open</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<p class="text-gray-900 dark:text-white text-sm font-semibold truncate">Design Assets</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs">24 items</p>
+</div>
+<div class="mt-3 flex items-center justify-between">
+<div class="flex gap-1">
+<span class="w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white dark:ring-gray-800"></span>
+<span class="w-2 h-2 rounded-full bg-red-500 ring-1 ring-white dark:ring-gray-800"></span>
+</div>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Recent Files -->
+<div class="flex flex-col mt-2">
+<div class="px-4 pt-4 pb-2">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold leading-tight">Files</h3>
+</div>
+<div class="grid grid-cols-2 gap-3 px-4">
+<!-- File Card 1: PDF -->
+<div class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+<div class="h-32 bg-gray-50 dark:bg-gray-700 relative w-full flex items-center justify-center overflow-hidden">
+<!-- Background Pattern for PDF -->
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#64748b 1px, transparent 1px); background-size: 10px 10px;"></div>
+<div class="z-10 bg-white dark:bg-gray-800 p-2 rounded shadow-sm">
+<span class="material-symbols-outlined text-red-500 text-[32px]">picture_as_pdf</span>
+</div>
+<div class="absolute top-2 right-2 z-20 bg-white/50 dark:bg-black/20 backdrop-blur-sm rounded-full p-1">
+<span class="material-symbols-outlined text-amber-400 fill-current text-[16px] block">star</span>
+</div>
+</div>
+<div class="p-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<p class="text-gray-900 dark:text-white text-sm font-semibold truncate">Project_Proposal_v2.pdf</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs mt-0.5">2.4 MB • Today</p>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-2">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- File Card 2: Image -->
+<div class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+<div class="h-32 bg-gray-200 dark:bg-gray-700 relative w-full bg-cover bg-center" data-alt="Abstract colorful gradient showing creative design preview" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDhyl6PvWGoe0x1dNHF3My2kl4BME3g08qB0fh_PJyI6PvR1n6L1G4rvIBDRFDcu3yENRYPesixo56S8LIXMoKFXFcSRtOfApEG7rCD0m9P3qreFizuoHBavXhvlMEwK595F8xmOhYLXgLW1rHVFNUSnVtsokL3TFgt1dC6b7uwpRuDvc03chqXHjN7hFnbdxNAZi4HIIauym-mGr0bw1OR7lTfT3MFn-17eZrP5gWZhPmbFtGsnZFG47kM1wD6_PyMpJTVXOL-xN0');">
+<div class="absolute top-2 right-2 z-20 bg-white/50 dark:bg-black/20 backdrop-blur-sm rounded-full p-1">
+<span class="material-symbols-outlined text-amber-400 fill-current text-[16px] block">star</span>
+</div>
+</div>
+<div class="p-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<p class="text-gray-900 dark:text-white text-sm font-semibold truncate">Logo_Draft_v2.png</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs mt-0.5">1.1 MB • Yesterday</p>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-2">
+<div class="flex gap-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+</div>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- File Card 3: Doc -->
+<div class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+<div class="h-32 bg-blue-50 dark:bg-gray-700 relative w-full flex items-center justify-center">
+<div class="z-10 bg-white dark:bg-gray-800 p-2 rounded shadow-sm">
+<span class="material-symbols-outlined text-blue-500 text-[32px]">description</span>
+</div>
+<div class="absolute top-2 right-2 z-20 bg-white/50 dark:bg-black/20 backdrop-blur-sm rounded-full p-1">
+<span class="material-symbols-outlined text-amber-400 fill-current text-[16px] block">star</span>
+</div>
+</div>
+<div class="p-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<p class="text-gray-900 dark:text-white text-sm font-semibold truncate">Quarterly_Report_Q3.docx</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs mt-0.5">850 KB • 2 days ago</p>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-2">
+<span class="text-xs text-gray-400 font-medium">No tags</span>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- File Card 4: Figma -->
+<div class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+<div class="h-32 bg-purple-50 dark:bg-gray-700 relative w-full flex items-center justify-center" data-alt="Simple geometric shapes pattern representing vector graphics">
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#a855f7 2px, transparent 2px); background-size: 20px 20px;"></div>
+<div class="z-10 bg-black p-2 rounded-xl shadow-sm">
+<!-- Simple custom shape for Figma-like icon -->
+<div class="grid grid-cols-2 gap-0.5 w-6 h-9">
+<div class="bg-[#F24E1E] rounded-l-full aspect-square"></div>
+<div class="bg-[#FF7262] rounded-r-full aspect-square"></div>
+<div class="bg-[#A259FF] rounded-l-full aspect-square"></div>
+<div class="bg-[#1ABCFE] rounded-full aspect-square"></div>
+<div class="bg-[#0ACF83] rounded-tl-full rounded-bl-full rounded-br-full aspect-square"></div>
+</div>
+</div>
+<div class="absolute top-2 right-2 z-20 bg-white/50 dark:bg-black/20 backdrop-blur-sm rounded-full p-1">
+<span class="material-symbols-outlined text-amber-400 fill-current text-[16px] block">star</span>
+</div>
+</div>
+<div class="p-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<p class="text-gray-900 dark:text-white text-sm font-semibold truncate">App_Wireframes.fig</p>
+<p class="text-gray-500 dark:text-gray-400 text-xs mt-0.5">14.2 MB • 1 week ago</p>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-2">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty state filler to show scroll -->
+<div class="h-4"></div>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-6 right-6 z-30">
+<button class="flex items-center justify-center w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+</div>
+</div>
+</body></html>

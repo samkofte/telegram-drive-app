@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>File Explorer - List View</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3e577a",
+                        "background-light": "#f9fafb",
+                        "background-dark": "#1f2938",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'nav': '0 -4px 20px -2px rgba(0, 0, 0, 0.03)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-gray-100 h-screen flex flex-col overflow-hidden selection:bg-primary/20">
+<!-- Header Section -->
+<header class="flex-none pt-safe-top bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-20 border-b border-gray-100 dark:border-gray-800">
+<div class="px-4 h-14 flex items-center justify-between">
+<button class="size-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-800 dark:text-white">
+<span class="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight text-primary dark:text-gray-100">Project Alpha</h1>
+<div class="flex items-center gap-1">
+<button class="size-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[22px]">search</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[22px]">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Breadcrumbs ScrollView -->
+<div class="w-full overflow-x-auto no-scrollbar pb-3 pt-1 pl-4 flex items-center gap-2 mask-linear-fade">
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px] text-gray-500">home</span>
+</button>
+<span class="text-gray-400 text-xs shrink-0 material-symbols-outlined">chevron_right</span>
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 transition-transform">
+<span class="text-xs font-medium text-gray-600 dark:text-gray-300">My Files</span>
+</button>
+<span class="text-gray-400 text-xs shrink-0 material-symbols-outlined">chevron_right</span>
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white shadow-md shadow-primary/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">folder_open</span>
+<span class="text-xs font-semibold">Project Alpha</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto no-scrollbar p-4 pt-2 pb-24 space-y-3">
+<!-- Summary Header -->
+<div class="flex items-end justify-between px-1 pb-2">
+<h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">All Items</h2>
+<span class="text-xs font-medium text-primary dark:text-blue-300 bg-primary/10 dark:bg-blue-900/30 px-2 py-0.5 rounded text-center">5 Items</span>
+</div>
+<!-- List Item: Folder -->
+<div class="group relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700/50 transition-all active:scale-[0.99] hover:border-primary/30">
+<!-- Icon Box -->
+<div class="relative shrink-0 size-12 flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-300">
+<span class="material-symbols-outlined text-[28px] fill-current">folder</span>
+<!-- Notification Dot -->
+<div class="absolute -top-1 -right-1 size-3 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+</div>
+<!-- Content -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex justify-between items-start">
+<h3 class="text-base font-semibold text-gray-900 dark:text-white truncate pr-2">Design Assets</h3>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap pt-1">2h ago</span>
+</div>
+<div class="flex justify-between items-end mt-0.5">
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">24 items</p>
+<!-- Avatar Stack -->
+<div class="flex items-center -space-x-2">
+<img alt="User avatar" class="size-5 rounded-full ring-2 ring-white dark:ring-gray-800 object-cover" data-alt="Small portrait of a woman with long hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOVPRWL1Iw76V7VkmMcHH05v4aKneW9RFu2X8RaJzZRgksoszyJKCEgRxBThfI2wJfJ8gG1PT5dU5f-TbDz3twbD2DJIcITLnXkFsstNNQmD0RXfnIhWfMz5enmB5WABXC-ffwBTN3F_ohqrXYQEhcOZiVrpHgMty8kWwj2wjNzKAPBpfXaOOZKHGAI7fqhK-49rkEK5s6EVO3ftp5tRCNqH2zUXmjm8s5SmNT46H2WTft9AYicejrEYpPueffXjVm83jF0nf6rj4"/>
+<div class="size-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+<span class="text-[8px] font-bold text-gray-500 dark:text-gray-300">+2</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Context Menu Button -->
+<button class="shrink-0 size-8 flex items-center justify-center rounded-full text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- List Item: PDF -->
+<div class="group relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700/50 transition-all active:scale-[0.99]">
+<div class="shrink-0 size-12 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
+<span class="material-symbols-outlined text-[28px]">picture_as_pdf</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex justify-between items-start">
+<h3 class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">Q3_Financials.pdf</h3>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap pt-1">Yesterday</span>
+</div>
+<div class="flex justify-between items-end mt-0.5">
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">2.4 MB</p>
+<img alt="Sarah M." class="size-5 rounded-full ring-2 ring-white dark:ring-gray-800 object-cover" data-alt="Portrait of a smiling man with glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5q_MHbRekUPxvRwCWfrqdGrsEmDtLIbAZBNqIRp5O2X9PJME61mnY6F9GhHrIINfTlXtZcpz2kuwRQLfN1rjNAenWF8J_VOfwZcmzaW1Y8jOWl-laiAUUQBtjEtUpBndYj77No_tpkSvX_ZCB6ywbluFajgQUOP1B92agP3KHxyWCj5uSQAvsqdj5UWWD6ASJyFhcABD6B_FDcb5eBP1Tgz9l2QGqvhwHriN-u1PeL_q9LD3NZ80UyOQdpOrc5O2mvcaABNe3JAs"/>
+</div>
+</div>
+<button class="shrink-0 size-8 flex items-center justify-center rounded-full text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- List Item: Image -->
+<div class="group relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700/50 transition-all active:scale-[0.99]">
+<div class="shrink-0 size-12 flex items-center justify-center rounded-lg overflow-hidden bg-gray-100 relative">
+<img alt="Thumbnail" class="w-full h-full object-cover opacity-80" data-alt="Abstract gradient artwork thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtJs4whE7ZF3kQfR-L0eKhTvTPzd7h-_Ib5J46bEJZ5obL7Xm5bOTAYjNuM8Bfebq5vE7xyoL3MyOkV4aQ6U0Hzm-yz7kU8eVLyq9AmkF7Ww6eGaeXv-9whEIScd19oy3vzv7fG9govGOQsmmKx1Zt-tfPxRlweX9QVzGs250VJJNSiDiM3K4SRU8PWikhXYFOWKJa9jcHon_jv4iAr4tcXVk2POOkzYd--S4hO1ejQyeRTUyVAt11Z-y5OshozIfSiQyklnQ6G_E"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/10">
+<span class="material-symbols-outlined text-white text-[20px] drop-shadow-md">image</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex justify-between items-start">
+<h3 class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">Hero_Banner_v2.png</h3>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap pt-1">Oct 24</span>
+</div>
+<div class="flex justify-between items-end mt-0.5">
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">4.1 MB</p>
+<img alt="Mike T." class="size-5 rounded-full ring-2 ring-white dark:ring-gray-800 object-cover" data-alt="Portrait of a man looking to the side" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6FOh6pRsV4HSOGK7e11wGnzZt646uDBbypYMpppK0qmiAl8xP-VK98k3o-husgj3kVPAr-cnG3ZAtePkAaGiPaYPxVIJsVxrOdZ0rQmRSBkZftPI2LCodb9BVKaTGshFL_0r0KyFF778N2vYDBH937WWJzwo6BoGRXzyJDMtkbZqCxR1ruo3aYVMMHFyoc4zApUizRhhAIM99OuX6z8bVSZt0WK3b9bgwEK1eavLdbtjZX7DtdbnGOcO8816p241x6sSGLP1vDF0"/>
+</div>
+</div>
+<button class="shrink-0 size-8 flex items-center justify-center rounded-full text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- List Item: DOC -->
+<div class="group relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700/50 transition-all active:scale-[0.99]">
+<div class="shrink-0 size-12 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400">
+<span class="material-symbols-outlined text-[28px]">article</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex justify-between items-start">
+<h3 class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">Meeting_Notes.docx</h3>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap pt-1">Oct 22</span>
+</div>
+<div class="flex justify-between items-end mt-0.5">
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">14 KB</p>
+<div class="size-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-primary flex items-center justify-center text-[10px] font-bold text-white">
+                        You
+                    </div>
+</div>
+</div>
+<button class="shrink-0 size-8 flex items-center justify-center rounded-full text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- List Item: Spreadsheet -->
+<div class="group relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700/50 transition-all active:scale-[0.99]">
+<div class="shrink-0 size-12 flex items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 dark:text-emerald-400">
+<span class="material-symbols-outlined text-[28px]">table_view</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex justify-between items-start">
+<h3 class="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">Budget_2024.xlsx</h3>
+<span class="text-[10px] font-medium text-gray-400 whitespace-nowrap pt-1">Oct 15</span>
+</div>
+<div class="flex justify-between items-end mt-0.5">
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">865 KB</p>
+<img alt="Finance Lead" class="size-5 rounded-full ring-2 ring-white dark:ring-gray-800 object-cover" data-alt="Portrait of a woman wearing glasses in an office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQqoSfrRiAoFVnXJE_GSZyMiRoOYyfOJ6UCMRRud_Y0YW78AJ2udmRnQxB_znE8GYWLraRIeRC8Q18S96yO1V_7pLG6J-tgk0Xiikz7AvRbKpDu3RT9nW1oYz_XtG3SYCGh94CByHpC4PgqDrgrV4T_0113d8_8MsQTCIlemWIx63Ik_ZKkpZ3mTVvmuHzk_15kvFXK-usg5_k-NWgMsTL4pQWhOyT7Lk1kKQ80AOj4Kbp6lkNI_EkESxmnvLuwWWkzUHJKLIBpyc"/>
+</div>
+</div>
+<button class="shrink-0 size-8 flex items-center justify-center rounded-full text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- End of list padding -->
+<div class="h-10"></div>
+</main>
+<!-- Floating Action Button -->
+<button class="absolute bottom-24 right-5 z-30 size-14 bg-primary text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center active:scale-90 transition-transform hover:shadow-primary/60">
+<span class="material-symbols-outlined text-[32px]">add</span>
+</button>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full bg-white/90 dark:bg-background-dark/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 pb-safe-bottom z-40 shadow-nav">
+<div class="flex justify-around items-center h-16 px-2">
+<button class="flex-1 flex flex-col items-center justify-center gap-1 group">
+<span class="material-symbols-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">home</span>
+<span class="text-[10px] font-medium text-gray-500 group-hover:text-primary">Home</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center gap-1 group relative">
+<span class="absolute -top-1 w-8 h-1 bg-primary rounded-b-full"></span>
+<span class="material-symbols-outlined text-[24px] text-primary fill-current">folder</span>
+<span class="text-[10px] font-bold text-primary">Files</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center gap-1 group">
+<span class="material-symbols-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">people</span>
+<span class="text-[10px] font-medium text-gray-500 group-hover:text-primary">Shared</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center gap-1 group">
+<span class="material-symbols-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">settings</span>
+<span class="text-[10px] font-medium text-gray-500 group-hover:text-primary">Settings</span>
+</button>
+</div>
+<!-- Safe Area Spacer for iOS Home Indicator -->
+<div class="h-4 w-full"></div>
+</nav>
+<style>
+        /* Custom scrollbar hiding */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Fade effect for horizontal scroll list */
+        .mask-linear-fade {
+            mask-image: linear-gradient(to right, black 90%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
+        }
+    </style>
+</body></html>

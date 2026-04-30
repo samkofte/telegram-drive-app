@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Main Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3e577a",
+                        "primary-dark": "#2c3e56",
+                        "background-light": "#f9fafb",
+                        "background-dark": "#1f2938",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#374151",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                    boxShadow: {
+                        "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+                        "glow": "0 0 15px rgba(62, 87, 122, 0.2)"
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#1f2938] dark:text-gray-100 min-h-screen relative overflow-x-hidden selection:bg-primary/20 selection:text-primary">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-30 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md px-5 py-4 flex items-center justify-between transition-colors duration-300">
+<button aria-label="Menu" class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-[#121417] dark:text-white">
+<span class="material-symbols-outlined text-[28px]">menu</span>
+</button>
+<div class="flex items-center gap-3">
+<button class="relative flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-white dark:border-gray-700 shadow-sm transition-transform active:scale-95">
+<img alt="User profile portrait of a woman" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIp2mZVG_gPJ2B609gCQ3WZDc_sfAc0yfV_41AjvC7Qr_NWkXyOIUEx2wlT5fk_-6W0a5zohnirWf0sHbDEus5rmsHH5JbWFKO3ngcM4BV25ir0Z9oNEzSxeHYH71enjNB05ytzsILHs7_eSNDUJVSo2D-p0yzWDy_-etc2hL3wyeUp6VNdJZZdRyOVa989kFvC3kO9nTxxzHxB5coOERlF0gsXg7IqqcHplzgQvSIkruAsPV19fLVfWN6jDd_AEFTB_ljPJZILA4"/>
+</button>
+</div>
+</header>
+<!-- Main Scrollable Content -->
+<main class="flex flex-col gap-6 pb-24">
+<!-- Search Bar -->
+<div class="px-5">
+<div class="group relative flex h-14 w-full items-center overflow-hidden rounded-2xl bg-white dark:bg-surface-dark shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/20">
+<div class="flex h-full w-12 items-center justify-center pl-2 text-gray-400">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="h-full w-full border-none bg-transparent px-2 text-base font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-0" placeholder="Search files, folders..."/>
+<button class="mr-4 flex size-8 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 transition-colors hover:text-primary">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+</div>
+</div>
+<!-- Quick Stats (Horizontal Scroll) -->
+<div class="flex w-full snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 hide-scrollbar">
+<!-- Stat Card 1: Files -->
+<div class="snap-center shrink-0 w-[160px] flex flex-col justify-between rounded-2xl bg-white dark:bg-surface-dark p-5 shadow-soft border border-gray-100 dark:border-gray-700">
+<div class="flex items-start justify-between">
+<div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-2 text-primary dark:text-blue-300">
+<span class="material-symbols-outlined">folder</span>
+</div>
+<span class="text-xs font-semibold text-green-600 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> 2%
+                    </span>
+</div>
+<div class="mt-4">
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Files</p>
+<p class="text-2xl font-bold text-gray-900 dark:text-white">1,240</p>
+</div>
+</div>
+<!-- Stat Card 2: Storage -->
+<div class="snap-center shrink-0 w-[180px] flex flex-col justify-between rounded-2xl bg-primary text-white p-5 shadow-glow relative overflow-hidden">
+<div class="absolute -right-4 -top-4 size-24 rounded-full bg-white/10 blur-xl"></div>
+<div class="relative z-10 flex items-start justify-between">
+<div class="rounded-lg bg-white/20 p-2">
+<span class="material-symbols-outlined text-white">cloud</span>
+</div>
+</div>
+<div class="relative z-10 mt-4 space-y-2">
+<p class="text-sm font-medium text-blue-100">Storage Used</p>
+<div class="flex items-baseline gap-1">
+<p class="text-2xl font-bold">45</p>
+<p class="text-sm font-medium text-blue-200">/ 100 GB</p>
+</div>
+<!-- Mini Progress Bar inside card -->
+<div class="h-1.5 w-full rounded-full bg-black/20 overflow-hidden">
+<div class="h-full rounded-full bg-white" style="width: 45%"></div>
+</div>
+</div>
+</div>
+<!-- Stat Card 3: Shared -->
+<div class="snap-center shrink-0 w-[160px] flex flex-col justify-between rounded-2xl bg-white dark:bg-surface-dark p-5 shadow-soft border border-gray-100 dark:border-gray-700">
+<div class="flex items-start justify-between">
+<div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-2 text-purple-600 dark:text-purple-300">
+<span class="material-symbols-outlined">share</span>
+</div>
+</div>
+<div class="mt-4">
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">Shared Links</p>
+<p class="text-2xl font-bold text-gray-900 dark:text-white">12</p>
+</div>
+</div>
+</div>
+<!-- Frequently Used Folders -->
+<div class="px-5">
+<div class="mb-4 flex items-center justify-between">
+<h2 class="text-lg font-bold text-gray-900 dark:text-white">Frequently Used</h2>
+<button class="text-sm font-medium text-primary hover:text-primary-dark">View all</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Folder 1 -->
+<button class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-transparent hover:border-primary/20 hover:shadow-md transition-all text-left">
+<div class="flex items-center justify-between w-full">
+<span class="material-symbols-outlined text-[32px] text-yellow-500 fill-1">folder</span>
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary text-[20px]">more_vert</span>
+</div>
+<div>
+<p class="font-bold text-gray-900 dark:text-white">Marketing</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">128 files</p>
+</div>
+</button>
+<!-- Folder 2 -->
+<button class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-transparent hover:border-primary/20 hover:shadow-md transition-all text-left">
+<div class="flex items-center justify-between w-full">
+<span class="material-symbols-outlined text-[32px] text-teal-500 fill-1">folder</span>
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary text-[20px]">more_vert</span>
+</div>
+<div>
+<p class="font-bold text-gray-900 dark:text-white">Finance</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">43 files</p>
+</div>
+</button>
+<!-- Folder 3 -->
+<button class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-transparent hover:border-primary/20 hover:shadow-md transition-all text-left">
+<div class="flex items-center justify-between w-full">
+<span class="material-symbols-outlined text-[32px] text-indigo-500 fill-1">folder</span>
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary text-[20px]">more_vert</span>
+</div>
+<div>
+<p class="font-bold text-gray-900 dark:text-white">Projects</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">842 files</p>
+</div>
+</button>
+<!-- Folder 4 -->
+<button class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-transparent hover:border-primary/20 hover:shadow-md transition-all text-left">
+<div class="flex items-center justify-between w-full">
+<span class="material-symbols-outlined text-[32px] text-pink-500 fill-1">folder</span>
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary text-[20px]">more_vert</span>
+</div>
+<div>
+<p class="font-bold text-gray-900 dark:text-white">Personal</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">22 files</p>
+</div>
+</button>
+</div>
+</div>
+<!-- Recent Activity -->
+<div class="px-5">
+<h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">Recent Activity</h2>
+<div class="flex flex-col gap-3">
+<!-- File Item 1 -->
+<div class="group flex items-center justify-between rounded-xl bg-white dark:bg-surface-dark p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="flex size-12 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500">
+<span class="material-symbols-outlined text-[24px]">picture_as_pdf</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[160px]">Project_Brief.pdf</p>
+<div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+<span>2.4 MB</span>
+<span class="size-1 rounded-full bg-gray-300"></span>
+<span>Edited 2m ago</span>
+</div>
+</div>
+</div>
+<button class="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- File Item 2 -->
+<div class="group flex items-center justify-between rounded-xl bg-white dark:bg-surface-dark p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="flex size-12 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600">
+<span class="material-symbols-outlined text-[24px]">table_view</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[160px]">Q3_Budget.xlsx</p>
+<div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+<span>850 KB</span>
+<span class="size-1 rounded-full bg-gray-300"></span>
+<span>Uploaded 1h ago</span>
+</div>
+</div>
+</div>
+<button class="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- File Item 3 -->
+<div class="group flex items-center justify-between rounded-xl bg-white dark:bg-surface-dark p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="flex size-12 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-500">
+<span class="material-symbols-outlined text-[24px]">image</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[160px]">Team_Photo.jpg</p>
+<div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+<span>4.2 MB</span>
+<span class="size-1 rounded-full bg-gray-300"></span>
+<span>Shared yesterday</span>
+</div>
+</div>
+</div>
+<button class="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- File Item 4 -->
+<div class="group flex items-center justify-between rounded-xl bg-white dark:bg-surface-dark p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="flex size-12 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500">
+<span class="material-symbols-outlined text-[24px]">description</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[160px]">Contract_Draft_v2.docx</p>
+<div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+<span>1.1 MB</span>
+<span class="size-1 rounded-full bg-gray-300"></span>
+<span>2 days ago</span>
+</div>
+</div>
+</div>
+<button class="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-6 right-5 z-40">
+<button class="flex size-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/40 transition-transform active:scale-90 hover:bg-primary-dark">
+<span class="material-symbols-outlined text-[32px]">add</span>
+</button>
+</div>
+<!-- Hidden Sidebar / Navigation Drawer Structure (Simulated for completeness) -->
+<!-- In a real app, this would overlay when the menu is clicked. -->
+<div class="hidden fixed inset-0 z-50 bg-[#141414]/40 backdrop-blur-sm" id="mobile-drawer">
+<div class="flex h-full w-3/4 max-w-xs flex-col bg-background-light dark:bg-background-dark p-6 shadow-2xl">
+<!-- User Info in Drawer -->
+<div class="mb-8 flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">AM</div>
+<div>
+<p class="text-lg font-bold text-[#121417] dark:text-white leading-tight">Alex Morgan</p>
+<p class="text-xs text-gray-500">Pro Plan</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-2">
+<li class="flex h-12 items-center gap-4 rounded-xl bg-primary/10 px-4">
+<span class="material-symbols-outlined text-primary">dashboard</span>
+<p class="text-primary text-base font-bold leading-tight">Dashboard</p>
+</li>
+<li class="flex h-12 items-center gap-4 rounded-xl px-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-500">folder</span>
+<p class="text-[#121417] dark:text-gray-200 text-base font-medium leading-tight">My Files</p>
+</li>
+<li class="flex h-12 items-center gap-4 rounded-xl px-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-500">share</span>
+<p class="text-[#121417] dark:text-gray-200 text-base font-medium leading-tight">Shared</p>
+</li>
+<li class="flex h-12 items-center gap-4 rounded-xl px-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-500">star</span>
+<p class="text-[#121417] dark:text-gray-200 text-base font-medium leading-tight">Favorites</p>
+</li>
+<li class="flex h-12 items-center gap-4 rounded-xl px-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-500">schedule</span>
+<p class="text-[#121417] dark:text-gray-200 text-base font-medium leading-tight">Recent</p>
+</li>
+<li class="flex h-12 items-center gap-4 rounded-xl px-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-500">delete</span>
+<p class="text-[#121417] dark:text-gray-200 text-base font-medium leading-tight">Trash</p>
+</li>
+</ul>
+<div class="mt-auto">
+<div class="flex flex-col gap-3 rounded-2xl bg-gray-100 dark:bg-gray-800 p-4">
+<div class="flex gap-6 justify-between items-center">
+<p class="text-[#121417] dark:text-white text-sm font-semibold leading-normal">Storage</p>
+<p class="text-primary text-xs font-bold">Upgrade</p>
+</div>
+<div class="rounded-full bg-gray-300 dark:bg-gray-700 h-2 overflow-hidden">
+<div class="h-full rounded-full bg-primary" style="width: 45%;"></div>
+</div>
+<p class="text-gray-500 dark:text-gray-400 text-xs font-normal leading-normal">45GB of 100GB Used</p>
+</div>
+</div>
+</div>
+</div>
+</body></html>
