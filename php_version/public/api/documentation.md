@@ -2,7 +2,7 @@
 
 ## Requirements
 - **PHP API**: Serves as the main entry point.
-- **Python Bridge**: Must be running on `http://localhost:8002` (or configured via `PYTHON_API_URL`) to handle large file uploads and streaming.
+- **Telegram Bot**: Used by the PHP API for uploads, downloads, and chunked file handling.
 
 ## Base URL
 All API requests should be made to the base URL of your deployed application (e.g., `http://localhost:8080`).

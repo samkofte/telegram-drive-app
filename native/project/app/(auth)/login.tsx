@@ -1,19 +1,47 @@
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const REMEMBER_ME_KEY = 'remembered-login-identifier';
 
 export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const scrollViewRef = useRef<ScrollView>(null);
   const passwordInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRememberedIdentifier = async () => {
+      try {
+        const savedIdentifier = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+        if (isMounted && savedIdentifier) {
+          setIdentifier(savedIdentifier);
+          setRememberMe(true);
+        }
+      } catch {
+        return;
+      }
+    };
+
+    loadRememberedIdentifier();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const scrollToPasswordField = () => {
     requestAnimationFrame(() => {
@@ -36,6 +64,12 @@ export default function LoginScreen() {
       const userResponse = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${access_token}` }
       });
+
+      if (rememberMe) {
+        await AsyncStorage.setItem(REMEMBER_ME_KEY, identifier.trim());
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_ME_KEY);
+      }
 
       login(access_token, userResponse.data);
       router.replace('/(app)/dashboard');
@@ -101,18 +135,30 @@ export default function LoginScreen() {
 
                 <View>
                   <Text style={styles.label}>Password</Text>
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    returnKeyType="done"
-                    onFocus={scrollToPasswordField}
-                    onSubmitEditing={handleLogin}
-                  />
+                  <View style={styles.passwordField}>
+                    <TextInput
+                      ref={passwordInputRef}
+                      style={styles.passwordInput}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      returnKeyType="done"
+                      onFocus={scrollToPasswordField}
+                      onSubmitEditing={handleLogin}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword((current) => !current)} style={styles.visibilityButton}>
+                      <MaterialIcons name={showPassword ? 'visibility-off' : 'visibility'} size={22} color="#6b7280" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
+                <TouchableOpacity style={styles.rememberRow} onPress={() => setRememberMe((current) => !current)} activeOpacity={0.8}>
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                    {rememberMe ? <MaterialIcons name="check" size={16} color="#ffffff" /> : null}
+                  </View>
+                  <Text style={styles.rememberText}>Beni hatirla</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleLogin}
@@ -217,6 +263,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     color: '#1f2937',
+  },
+  passwordField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    color: '#1f2937',
+  },
+  visibilityButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#3e577a',
+    borderColor: '#3e577a',
+  },
+  rememberText: {
+    color: '#4b5563',
+    fontWeight: '500',
   },
   button: {
     backgroundColor: '#3e577a',

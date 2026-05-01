@@ -4,599 +4,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Drive - Modern Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <title>Telegram Drive - PHP Dosya Merkezi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://releases.transloadit.com/uppy/v3.21.0/uppy.min.css" rel="stylesheet">
     <script src="https://releases.transloadit.com/uppy/v3.21.0/uppy.min.js"></script>
-    <link href="https://releases.transloadit.com/uppy/v3.21.0/uppy.min.css" rel="stylesheet">
-    <!-- Image Editor Plugin -->
-    <script src="https://releases.transloadit.com/uppy/v3.21.0/uppy.min.js"></script> <!-- Ensure Core loaded -->
     <script src="https://releases.transloadit.com/uppy/locales/v3.0.6/tr_TR.min.js"></script>
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        .container {
-            max-width: 1300px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-
-        /* Dashboard Hero Section */
-        .hero {
-            text-align: center;
-            margin-bottom: 4rem;
-            padding-top: 2rem;
-        }
-
-        .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 800;
-            letter-spacing: -2px;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--text-main) 0%, var(--primary) 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .hero p {
-            font-size: 1.1rem;
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Upload Zone Overhaul */
-        .upload-wrapper {
-            max-width: 800px;
-            margin: -2rem auto 4rem;
-            position: relative;
-        }
-
-        .upload-area {
-            border: 2px dashed rgba(99, 102, 241, 0.3);
-            border-radius: var(--radius-xl);
-            padding: 4rem 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        .upload-area::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, var(--primary-light) 0%, transparent 100%);
-            opacity: 0;
-            transition: 0.4s;
-        }
-
-        .upload-area:hover {
-            border-color: var(--primary);
-            transform: scale(1.01);
-            background: rgba(255, 255, 255, 0.6);
-        }
-
-        .upload-area:hover::before {
-            opacity: 1;
-        }
-
-        .upload-area.dragover {
-            border-color: var(--primary);
-            background: var(--primary-light);
-            transform: scale(1.02);
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
-        }
-
-        .upload-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .upload-icon {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            display: block;
-        }
-
-        .progress-container {
-            margin-top: 2rem;
-            display: none;
-            text-align: left;
-        }
-
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-
-        .progress-bar-outer {
-            height: 12px;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 100px;
-            overflow: hidden;
-        }
-
-        .progress-bar-inner {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 100%);
-            width: 0%;
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
-        }
-
-        /* Files Listing */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .section-header h2 {
-            font-size: 1.75rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        .files-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .file-card {
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            transition: 0.3s;
-        }
-
-        .file-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        .file-main {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-
-        .file-icon-box {
-            width: 50px;
-            height: 50px;
-            background: var(--primary-light);
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .file-details {
-            min-width: 0;
-        }
-
-        .file-name {
-            font-weight: 700;
-            font-size: 1.05rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 0.25rem;
-        }
-
-        .file-meta {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .file-actions {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 0.75rem;
-            margin-top: auto;
-        }
-
-        /* Status Empty */
-        .empty-state {
-            grid-column: 1 / -1;
-            padding: 5rem 2rem;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: var(--radius-xl);
-            border: 2px dashed rgba(0, 0, 0, 0.05);
-        }
-
-        /* Uppy Customization (Glassmorphism) */
-        .uppy-Dashboard-inner {
-            background-color: rgba(255, 255, 255, 0.7) !important;
-            backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.5) !important;
-            border-radius: var(--radius-xl) !important;
-        }
-
-        [data-uppy-theme="dark"] .uppy-Dashboard-inner {
-            background-color: rgba(30, 41, 59, 0.6) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        }
-
-        .uppy-Dashboard-AddFiles-title {
-            font-family: 'Outfit', sans-serif !important;
-            font-weight: 600 !important;
-        }
-
-        /* Video Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(8px);
-            z-index: 2000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            border-radius: var(--radius-xl);
-            padding: 2rem;
-            position: relative;
-            background: var(--bg-card);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 1rem;
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .navbar {
-                padding: 1rem;
-            }
-
-            .user-email {
-                display: none;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/css/index-dashboard.css">
 </head>
 
 <body>
     <nav class="navbar">
-        <div class="logo" onclick="window.location.reload()">💠 Telegram Drive</div>
+        <div class="logo" onclick="window.location.href='/'">💠 Telegram Drive</div>
         <div class="user-info">
-            <div style="text-align: right; margin-right: 0.5rem;" class="user-email">
-                <div id="userEmail" style="font-weight: 700; font-size: 0.9rem;">Email</div>
-                <div id="userSubtext" style="font-size: 0.75rem; color: var(--text-muted);">Sistem Üyesi</div>
+            <div class="user-email">
+                <div id="userEmail" class="user-title">Email</div>
+                <div id="userSubtext" class="user-subtitle">Sistem Üyesi</div>
             </div>
+            <button class="btn btn-outline" onclick="window.location.href='/shares'">🔗 Paylaşımlar</button>
             <button class="btn btn-outline" onclick="window.location.href='/profile'">👤 Profil</button>
             <button class="btn btn-danger" onclick="logout()">Çıkış</button>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="hero animate-fade">
-            <h1>Sınırsız Depolama</h1>
-            <p>Dosyalarınızı Telegram bulutuna güvenle yükleyin, her yerden erişin ve anında paylaşın.</p>
-        </div>
+    <div class="dashboard-shell">
+        <section class="hero-grid animate-fade">
+            <div class="hero-card">
+                <div class="hero-kicker">
+                    <span class="material-symbols-outlined">deployed_code</span>
+                    PHP Dosya Merkezi
+                </div>
+                <h1>Mobildeki dosya yönetimi şimdi web tarafında da hazır.</h1>
+                <p>Favoriler, çöp kutusu, paylaşım, yeniden adlandırma, klasör renk ve ikonları, toplu işlemler ve sürükle bırak akışı tek ekranda çalışır.</p>
 
-        <div class="upload-wrapper animate-fade" style="animation-delay: 0.1s;">
-            <div id="uppy-dashboard" style="width: 100%; border-radius: var(--radius-xl); overflow: hidden;"></div>
-        </div>
-
-        <div class="section-header animate-fade" style="animation-delay: 0.2s;">
-            <h2>Son Dosyalarım</h2>
-            <button class="btn btn-outline" onclick="loadFiles()">🔄 Listeyi Yenile</button>
-        </div>
-
-        <div class="files-grid animate-fade" id="filesContainer" style="animation-delay: 0.3s;">
-            <!-- Files injected here -->
-            <div class="empty-state">
-                <div class="spinner"></div>
-                <p>Dosyalarınız yükleniyor...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Video Player Modal -->
-    <div id="videoModal" class="modal-overlay">
-        <div class="modal-content glass-pane" style="max-width: 900px; width: 95%;">
-            <div class="modal-header">
-                <h3 id="videoTitle" style="margin: 0; color: #fff;">Video Oynatıcı</h3>
-                <button class="btn btn-danger" style="padding: 0.5rem 1rem;" onclick="closeVideo()">✖ Kapat</button>
-            </div>
-            <div class="video-container"
-                style="margin-top: 1.5rem; background: #000; border-radius: var(--radius-md); overflow: hidden; aspect-ratio: 16/9;">
-                <video id="videoPlayer" controls style="width: 100%; height: 100%;">
-                    Tarayıcınız video oynatmayı desteklemiyor.
-                </video>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let appConfig = null;
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            checkAuth();
-
-            // Fetch configuration
-            try {
-                const res = await fetch('/config');
-                appConfig = await res.json();
-                initUppy(); // Initialize Uppy after config is loaded
-            } catch (e) {
-                console.error("Failed to load config", e);
-                initUppy();
-            }
-
-            // Check for auto-watch parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const watchId = urlParams.get('watch');
-            if (watchId) {
-                setTimeout(() => watchVideo(watchId, 'Video Oynatılıyor...'), 1000);
-            }
-        });
-
-        async function checkAuth() {
-            const token = localStorage.getItem('access_token');
-            if (!token) return logout();
-
-            try {
-                const res = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
-                if (!res.ok) throw new Error();
-                const user = await res.json();
-                const displayName = user.username || (user.first_name ? `${user.first_name} ${user.last_name || ''}` : user.email);
-                document.getElementById('userEmail').textContent = displayName;
-                document.getElementById('userSubtext').textContent = user.role === 'admin' ? 'Yönetici' : 'Sistem Üyesi';
-                loadFiles();
-            } catch (e) { logout(); }
-        }
-
-        function logout() { localStorage.removeItem('access_token'); window.location.href = '/login'; }
-
-        function initUppy() {
-            if (typeof Uppy === 'undefined') return;
-
-            const uppy = new Uppy.Uppy({
-                autoProceed: false,
-                restrictions: {
-                    maxFileSize: 2 * 1024 * 1024 * 1024, // 2GB
-                },
-                locale: Uppy.locales.tr_TR
-            })
-                .use(Uppy.Dashboard, {
-                    target: '#uppy-dashboard',
-                    inline: true,
-                    height: 450, // Taller dashboard
-                    width: '100%',
-                    showProgressDetails: true,
-                    note: '🚀 Maksimum hız için 5 dosya aynı anda yüklenir.',
-                    proudlyDisplayPoweredByUppy: false,
-                    theme: 'dark', // Dark theme matches the glass aesthetic better
-                    browserBackButtonClose: true
-                })
-                .use(Uppy.ImageEditor, { target: Uppy.Dashboard })
-                .use(Uppy.XHRUpload, {
-                    endpoint: '/upload', // Default endpoint
-                    formData: true,
-                    fieldName: 'file',
-                    limit: 5, // Parallel uploads enabled for speed
-                    headers: (file) => {
-                        const isLarge = appConfig && file.size > (appConfig.max_bot_api_size || 52428800);
-                        if (!isLarge) {
-                            return { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` };
-                        }
-                        return {};
-                    }
-                });
-
-            // Handle dynamic endpoint and metadata per individual file upload
-            uppy.on('upload-start', (file) => {
-                const isLarge = appConfig && file.size > (appConfig.max_bot_api_size || 52428800);
-                const xhrPlugin = uppy.getPlugin('XHRUpload');
-
-                // Set correct endpoint for THIS specific file
-                const targetUrl = isLarge ? `${appConfig.python_api_url}/upload` : '/upload';
-                xhrPlugin.setOptions({ endpoint: targetUrl });
-
-                // Set correct metadata to ensures user_id is sent for large files
-                if (isLarge && window.currentUser) {
-                    uppy.setFileMeta(file.id, { user_id: window.currentUser.id });
-                }
-            });
-
-            uppy.on('complete', (result) => {
-                if (result.successful.length > 0) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Tamamlandı!',
-                        text: `${result.successful.length} dosya başarıyla yüklendi.`,
-                        timer: 2000,
-                        showConfirmButton: false,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff'
-                    });
-                    loadFiles();
-                }
-                if (result.failed.length > 0) {
-                    const errorMsg = result.failed[0].error || 'Bilinmeyen bir hata oluştu.';
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Yükleme Hatası',
-                        text: `Bazı dosyalar yüklenemedi: ${errorMsg}`,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff'
-                    });
-                }
-            });
-
-            window.uppy = uppy;
-        }
-
-        async function loadFiles() {
-            const token = localStorage.getItem('access_token');
-            const container = document.getElementById('filesContainer');
-
-            try {
-                const res = await fetch('/files', { headers: { 'Authorization': `Bearer ${token}` } });
-                const files = await res.json();
-
-                if (!files.length) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <span style="font-size: 3rem; display: block; margin-bottom: 1rem; opacity: 0.5;">📂</span>
-                            <h3 style="font-weight: 700;">Henüz dosya yok</h3>
-                            <p style="color: var(--text-muted);">Yukarıdaki alana sürükleyerek ilk dosyanızı yükleyin.</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = files.map(f => {
-                    const isVideo = f.mime_type.includes('video') || ['.mp4', '.webm', '.mkv', '.avi', '.mov'].some(ext => f.filename.toLowerCase().endsWith(ext));
-                    const isImage = f.mime_type.includes('image');
-                    const watchBtn = isVideo ? `<button class="btn btn-success" style="padding: 0.6rem;" onclick="watchVideo('${f.file_id}', '${f.filename.replace(/'/g, "\\'")}')">👁️ İzle</button>` : '';
-
-                    let iconBox = `<div class="file-icon-box">${getFileIcon(f.mime_type)}</div>`;
-                    if (isImage) {
-                        iconBox = `
-                            <div class="file-icon-box" style="background-image: url('/preview/${f.file_id}?token=${token}'); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.1);">
-                            </div>
-                         `;
-                    }
-
-                    return `
-                    <div class="file-card glass-pane animate-fade">
-                        <div class="file-main">
-                            ${iconBox}
-                            <div class="file-details">
-                                <div class="file-name" title="${f.filename}">${f.filename}</div>
-                                <div class="file-meta">
-                                    <span>💾 ${formatFileSize(f.file_size)}</span>
-                                    <span>📥 ${f.download_count || 0} indirme</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="file-actions" style="grid-template-columns: ${isVideo ? '1fr 1fr auto' : '1fr auto'};">
-                            ${watchBtn}
-                            <button class="btn btn-primary" style="padding: 0.6rem;" onclick="downloadFile('${f.file_id}')">📥 İndir</button>
-                            <button class="btn btn-danger" style="padding: 0.6rem;" onclick="deleteFile('${f.file_id}')">🗑️</button>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Toplam Dosya</div>
+                        <div class="summary-value" id="statFileCount">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Paylaşılan Link</div>
+                        <div class="summary-value" id="statSharedCount">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Kullanılan Alan</div>
+                        <div class="summary-value summary-value-sm" id="statStorage">0 B</div>
+                        <div class="storage-track">
+                            <div class="storage-fill" id="storageFill"></div>
                         </div>
                     </div>
-                `;
-                }).join('');
-            } catch (e) { console.error(e); }
-        }
+                </div>
+            </div>
 
-        function watchVideo(id, title) {
-            const token = localStorage.getItem('access_token');
-            const modal = document.getElementById('videoModal');
-            const player = document.getElementById('videoPlayer');
-            const titleEl = document.getElementById('videoTitle');
+            <div class="upload-card">
+                <div class="section-copy">
+                    <h2>Yükleme Alanı</h2>
+                    <p>Mevcut klasöre çoklu dosya yükle. Büyük dosyalarda da PHP akışı kullanılır.</p>
+                </div>
+                <div id="uppy-dashboard"></div>
+                <div class="upload-target-label" id="uploadTargetLabel">Yükleme hedefi: Ana Klasör</div>
+            </div>
+        </section>
 
-            titleEl.textContent = title;
-            player.src = `/stream/${id}?token=${token}`;
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
+        <section class="toolbar-panel animate-fade" style="animation-delay: 0.08s;">
+            <div class="toolbar-row">
+                <div class="toolbar-left">
+                    <label class="search-shell" for="searchInput">
+                        <span class="material-symbols-outlined">search</span>
+                        <input id="searchInput" type="text" placeholder="Dosya ve klasör ara...">
+                    </label>
+                    <div class="mode-switch" role="tablist" aria-label="Liste modu">
+                        <button class="mode-btn active" data-mode="all" onclick="setMode('all')">Tümü</button>
+                        <button class="mode-btn" data-mode="favorites" onclick="setMode('favorites')">Favoriler</button>
+                        <button class="mode-btn" data-mode="trash" onclick="setMode('trash')">Çöp</button>
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    <button class="panel-btn" onclick="toggleSelectionMode()">
+                        <span class="material-symbols-outlined">select_all</span>
+                        <span id="selectionToggleLabel">Toplu Seç</span>
+                    </button>
+                    <button class="panel-btn" id="createFolderBtn" onclick="openCreateFolderModal()">
+                        <span class="material-symbols-outlined">create_new_folder</span>
+                        Klasör Ekle
+                    </button>
+                    <button class="panel-btn primary" onclick="loadContent()">
+                        <span class="material-symbols-outlined">refresh</span>
+                        Yenile
+                    </button>
+                </div>
+            </div>
+        </section>
 
-        function closeVideo() {
-            const modal = document.getElementById('videoModal');
-            const player = document.getElementById('videoPlayer');
+        <div class="breadcrumbs animate-fade hidden" id="breadcrumbs" style="animation-delay: 0.12s;"></div>
 
-            player.pause();
-            player.src = '';
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
+        <section class="download-hub animate-fade" style="animation-delay: 0.14s;">
+            <div class="download-card">
+                <div class="section-copy">
+                    <h2>İndirme Alanı</h2>
+                    <p>Seçili dosyaları tek tek indir, ZIP haline getir veya paylaşım sayfasına gönder.</p>
+                </div>
+                <div class="download-actions">
+                    <button class="panel-btn primary" id="downloadHubZipBtn" onclick="bulkZipDownloadSelected()">
+                        <span class="material-symbols-outlined">folder_zip</span>
+                        ZIP İndir
+                    </button>
+                    <button class="panel-btn" id="downloadHubBulkBtn" onclick="bulkDownloadSelected()">
+                        <span class="material-symbols-outlined">download</span>
+                        Tek Tek İndir
+                    </button>
+                    <button class="panel-btn" id="downloadHubShareBtn" onclick="bulkShareSelected()">
+                        <span class="material-symbols-outlined">share</span>
+                        Paylaşım Sayfası
+                    </button>
+                </div>
+                <div class="hub-note" id="downloadHubNote">ZIP ve çoklu paylaşım için önce dosya seç.</div>
+            </div>
+            <div class="download-card">
+                <div class="section-copy">
+                    <h2>Çöp Kutusu</h2>
+                    <p>Silinen dosya ve klasörleri bu görünümden geri yükle veya kalıcı temizle.</p>
+                </div>
+                <div class="trash-overview">
+                    <div class="overview-pill">
+                        <span class="material-symbols-outlined">delete</span>
+                        <span id="trashFileCount">0 dosya</span>
+                    </div>
+                    <div class="overview-pill">
+                        <span class="material-symbols-outlined">folder_delete</span>
+                        <span id="trashFolderCount">0 klasör</span>
+                    </div>
+                </div>
+                <div class="download-actions">
+                    <button class="panel-btn" onclick="setMode('trash')">
+                        <span class="material-symbols-outlined">restore_from_trash</span>
+                        Çöp Kutusunu Aç
+                    </button>
+                    <button class="panel-btn" onclick="setMode('all')">
+                        <span class="material-symbols-outlined">home_storage</span>
+                        Aktif Dosyalar
+                    </button>
+                </div>
+            </div>
+        </section>
 
-        // Close modal on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeVideo();
-        });
+        <section class="content-panel animate-fade" id="foldersSection" style="animation-delay: 0.16s;">
+            <div class="content-header">
+                <div class="section-copy">
+                    <h2 id="folderSectionTitle">Klasörler</h2>
+                    <p id="folderSectionSubtitle">Bulunduğun klasördeki dizinler</p>
+                </div>
+                <div class="counter-chip" id="folderCountLabel">0 klasör</div>
+            </div>
+            <div class="card-grid" id="foldersContainer"></div>
+        </section>
 
-        // Close modal on click outside content
-        document.getElementById('videoModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('videoModal')) closeVideo();
-        });
+        <section class="content-panel animate-fade" style="animation-delay: 0.22s;">
+            <div class="content-header">
+                <div class="section-copy">
+                    <h2 id="fileSectionTitle">Dosyalar</h2>
+                    <p id="fileSectionSubtitle">Karttan işlemleri çalıştır veya sürükleyip klasöre bırak</p>
+                </div>
+                <div class="counter-chip" id="fileCountLabel">0 dosya</div>
+            </div>
+            <div class="card-grid" id="filesContainer"></div>
+        </section>
+    </div>
 
-        function getFileIcon(mime) {
-            if (!mime) return '📄';
-            if (mime.includes('image')) return '🖼️';
-            if (mime.includes('video')) return '🎬';
-            if (mime.includes('pdf')) return '📕';
-            if (mime.includes('zip') || mime.includes('rar')) return '📦';
-            return '📄';
-        }
+    <div class="selection-dock hidden" id="selectionBar">
+        <div class="selection-dock-main">
+            <div class="selection-summary">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span id="selectionCountText">0 dosya seçildi</span>
+            </div>
+            <div class="selection-actions grouped">
+                <button class="panel-btn" onclick="selectAllVisibleFiles()">
+                    <span class="material-symbols-outlined">done_all</span>
+                    Tümünü Seç
+                </button>
+                <button class="panel-btn primary" id="bulkZipBtn" onclick="bulkZipDownloadSelected()">
+                    <span class="material-symbols-outlined">folder_zip</span>
+                    ZIP İndir
+                </button>
+                <button class="panel-btn" id="bulkDownloadBtn" onclick="bulkDownloadSelected()">
+                    <span class="material-symbols-outlined">download</span>
+                    Tek Tek
+                </button>
+                <button class="panel-btn" id="bulkShareBtn" onclick="bulkShareSelected()">
+                    <span class="material-symbols-outlined">share</span>
+                    Paylaş
+                </button>
+                <button class="panel-btn" id="bulkMoveBtn" onclick="openMoveModal()">
+                    <span class="material-symbols-outlined">drive_file_move</span>
+                    Taşı
+                </button>
+                <button class="panel-btn" id="bulkRestoreBtn" onclick="bulkRestoreSelected()">
+                    <span class="material-symbols-outlined">restore_from_trash</span>
+                    Geri Yükle
+                </button>
+                <button class="panel-btn danger" id="bulkDeleteBtn" onclick="confirmBulkDelete()">
+                    <span class="material-symbols-outlined">delete_sweep</span>
+                    Sil
+                </button>
+                <button class="panel-btn" onclick="toggleSelectionMode(false)">
+                    <span class="material-symbols-outlined">close</span>
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
 
-        function formatFileSize(bytes) {
-            if (!bytes) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-        }
+    <div class="overlay hidden" id="folderModal">
+        <div class="dialog-card">
+            <div class="dialog-header">
+                <h3>Yeni Klasör</h3>
+                <button class="icon-btn" onclick="closeCreateFolderModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="dialog-body">
+                <label class="field-block">
+                    <span>Klasör adı</span>
+                    <input id="folderNameInput" class="field-input" type="text" placeholder="Proje Belgeleri">
+                </label>
+                <div class="field-block">
+                    <span>Renk</span>
+                    <div class="option-grid compact" id="folderColorOptions"></div>
+                </div>
+                <div class="field-block">
+                    <span>İkon</span>
+                    <div class="option-grid" id="folderIconOptions"></div>
+                </div>
+                <div class="dialog-actions">
+                    <button class="panel-btn" onclick="closeCreateFolderModal()">Vazgeç</button>
+                    <button class="panel-btn primary" onclick="createFolder()">
+                        <span class="material-symbols-outlined">check</span>
+                        Oluştur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function downloadFile(id) {
-            const token = localStorage.getItem('access_token');
-            window.open(`/download/${id}?token=${token}`, '_blank');
-        }
+    <div class="overlay hidden" id="moveModal">
+        <div class="dialog-card">
+            <div class="dialog-header">
+                <h3>Dosyaları Taşı</h3>
+                <button class="icon-btn" onclick="closeMoveModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="dialog-body">
+                <p class="dialog-copy">Bir hedef klasör seç. Seçili dosyalar toplu olarak taşınır.</p>
+                <div class="move-options" id="moveOptionsContainer"></div>
+                <div class="dialog-actions">
+                    <button class="panel-btn" onclick="closeMoveModal()">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        async function deleteFile(id) {
-            const result = await Swal.fire({
-                title: 'Emin misiniz?',
-                text: "Bu dosya kalıcı olarak silinecek!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#6366f1',
-                cancelButtonColor: '#f43f5e',
-                confirmButtonText: 'Evet, sil!',
-                cancelButtonText: 'Vazgeç',
-                background: 'rgba(30, 41, 59, 0.95)',
-                color: '#fff'
-            });
+    <div class="overlay hidden" id="previewModal">
+        <div class="preview-card">
+            <div class="preview-stage" id="previewStage"></div>
+            <div class="preview-sidebar">
+                <div class="dialog-header">
+                    <div>
+                        <h3 id="previewTitle">Önizleme</h3>
+                        <p class="preview-subtitle" id="previewSubtitle">Dosya bilgisi</p>
+                    </div>
+                    <button class="icon-btn" onclick="closePreview()">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="preview-actions">
+                    <button class="panel-btn" onclick="downloadPreviewFile()">
+                        <span class="material-symbols-outlined">download</span>
+                        İndir
+                    </button>
+                    <button class="panel-btn" onclick="sharePreviewFile()">
+                        <span class="material-symbols-outlined">share</span>
+                        Paylaş
+                    </button>
+                    <button class="panel-btn" onclick="renamePreviewFile()">
+                        <span class="material-symbols-outlined">edit</span>
+                        Yeniden Adlandır
+                    </button>
+                </div>
+                <div class="chip-stack" id="previewMetaChips"></div>
+                <p class="preview-note" id="previewNote">Dosya türüne göre önizleme açılır.</p>
+            </div>
+        </div>
+    </div>
 
-            if (result.isConfirmed) {
-                const token = localStorage.getItem('access_token');
-                const res = await fetch(`/files/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-                if (res.ok) {
-                    Swal.fire({
-                        title: 'Silindi!',
-                        icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff'
-                    });
-                    loadFiles();
-                }
-            }
-        }
-    </script>
+    <script src="/js/index.js"></script>
 </body>
 
 </html>

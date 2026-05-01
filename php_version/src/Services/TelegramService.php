@@ -8,16 +8,32 @@ class TelegramService
 {
     private array $botTokens;
     private array $clients = [];
+    private string|bool $verifyOption;
     
     public function __construct(array $botTokens)
     {
         $this->botTokens = $botTokens;
+        $this->verifyOption = $this->resolveVerifyOption();
         foreach ($botTokens as $token) {
             $this->clients[] = [
                 'token' => $token,
-                'client' => new Client(['base_uri' => "https://api.telegram.org/bot{$token}/"])
+                'client' => new Client([
+                    'base_uri' => "https://api.telegram.org/bot{$token}/",
+                    'verify' => $this->verifyOption,
+                ])
             ];
         }
+    }
+
+    private function resolveVerifyOption(): string|bool
+    {
+        $bundlePath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'cacert.pem';
+        return is_file($bundlePath) ? $bundlePath : true;
+    }
+
+    public function getBotTokens(): array
+    {
+        return $this->botTokens;
     }
 
     private function getRandomBot()
@@ -90,7 +106,10 @@ class TelegramService
     {
         try {
             if ($token) {
-                 $client = new Client(['base_uri' => "https://api.telegram.org/bot{$token}/"]);
+                 $client = new Client([
+                    'base_uri' => "https://api.telegram.org/bot{$token}/",
+                    'verify' => $this->verifyOption,
+                 ]);
                  $response = $client->post('deleteMessage', [
                     'json' => [
                         'chat_id' => $chatId,
@@ -105,6 +124,38 @@ class TelegramService
                 'json' => [
                     'chat_id' => $chatId,
                     'message_id' => $messageId
+                ]
+            ]);
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return ['ok' => false, 'description' => $e->getMessage()];
+        }
+    }
+
+    public function editMessageCaption(string $chatId, int $messageId, string $caption, ?string $token = null)
+    {
+        try {
+            if ($token) {
+                $client = new Client([
+                    'base_uri' => "https://api.telegram.org/bot{$token}/",
+                    'verify' => $this->verifyOption,
+                ]);
+                $response = $client->post('editMessageCaption', [
+                    'json' => [
+                        'chat_id' => $chatId,
+                        'message_id' => $messageId,
+                        'caption' => $caption,
+                    ]
+                ]);
+                return json_decode($response->getBody()->getContents(), true);
+            }
+
+            $bot = $this->getRandomBot();
+            $response = $bot['client']->post('editMessageCaption', [
+                'json' => [
+                    'chat_id' => $chatId,
+                    'message_id' => $messageId,
+                    'caption' => $caption,
                 ]
             ]);
             return json_decode($response->getBody()->getContents(), true);

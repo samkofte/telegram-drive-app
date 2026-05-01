@@ -2,6 +2,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, StyleSheet 
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,22 +15,35 @@ export default function RegisterScreen() {
     lastName: ''
   });
   const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   const handleRegister = async () => {
     if (!formData.email || !formData.password || !formData.username) {
-      Alert.alert('Error', 'Please fill in required fields');
+      Alert.alert('Eksik Bilgi', 'Lutfen zorunlu alanlari doldurun.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      Alert.alert('Gecersiz Sifre', 'Sifre en az 6 karakter olmali.');
+      return;
+    }
+
+    if (formData.password !== confirmPassword) {
+      Alert.alert('Sifre Uyusmuyor', 'Sifre ve sifre tekrar alani ayni olmali.');
       return;
     }
 
     setLoading(true);
     try {
       await api.post('/auth/register', formData);
-      Alert.alert('Success', 'Account created successfully. Please login.', [
-        { text: 'OK', onPress: () => router.replace('/(auth)/login') }
+      Alert.alert('Basarili', 'Hesap olusturuldu. Simdi giris yapabilirsiniz.', [
+        { text: 'Tamam', onPress: () => router.replace('/(auth)/login') }
       ]);
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.response?.data?.error || 'Something went wrong');
+      Alert.alert('Kayit Basarisiz', error.response?.data?.error || 'Bir hata olustu.');
     } finally {
       setLoading(false);
     }
@@ -95,13 +109,34 @@ export default function RegisterScreen() {
 
               <View>
                 <Text style={styles.label}>Password *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChangeText={(text) => setFormData({...formData, password: text})}
-                  secureTextEntry
-                />
+                <View style={styles.passwordField}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChangeText={(text) => setFormData({...formData, password: text})}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword((current) => !current)} style={styles.visibilityButton}>
+                    <MaterialIcons name={showPassword ? 'visibility-off' : 'visibility'} size={22} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View>
+                <Text style={styles.label}>Password Again *</Text>
+                <View style={styles.passwordField}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Repeat your password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowConfirmPassword((current) => !current)} style={styles.visibilityButton}>
+                    <MaterialIcons name={showConfirmPassword ? 'visibility-off' : 'visibility'} size={22} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <TouchableOpacity
@@ -183,6 +218,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     color: '#1f2937',
+  },
+  passwordField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    color: '#1f2937',
+  },
+  visibilityButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   row: {
     flexDirection: 'row',

@@ -7,8 +7,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
-import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { API_URL } from '@/constants/Config';
+import { appendUploadFile } from '@/services/uploadFormData';
 
 function formatBytes(bytes: number) {
   if (!bytes) return '0 B';
@@ -28,6 +30,20 @@ function getFileIconMeta(name?: string, mimeType?: string) {
   return { name: 'description' as const, bg: '#dbeafe', color: '#2563eb' };
 }
 
+function buildPickerFileName(asset: any) {
+  if (asset?.fileName) {
+    return asset.fileName;
+  }
+
+  const fromUri = asset?.uri?.split('/').pop();
+  if (fromUri && fromUri.includes('.')) {
+    return fromUri;
+  }
+
+  const extension = asset?.type === 'video' ? 'mp4' : 'jpg';
+  return `media-${Date.now()}.${extension}`;
+}
+
 type UploadQueueItem = {
   id: string;
   uri: string;
@@ -43,10 +59,12 @@ export default function UploadScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const token = useAuthStore((state) => state.token);
   const insets = useSafeAreaInsets();
   const queueRef = useRef<UploadQueueItem[]>([]);
   const processingRef = useRef(false);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+  const [selectionNotice, setSelectionNotice] = useState('');
   const [lastUpload, setLastUpload] = useState<{
     name: string;
     sizeLabel: string;
@@ -67,11 +85,11 @@ export default function UploadScreen() {
     };
 
     const formData = new FormData();
-    formData.append('file', {
+    appendUploadFile(formData, {
       uri: current.uri,
       name: current.name,
-      type: current.mimeType || 'application/octet-stream',
-    } as any);
+      mimeType: current.mimeType,
+    });
 
     updateQueueItem({
       status: 'uploading',
@@ -82,20 +100,39 @@ export default function UploadScreen() {
     try {
       updateQueueItem({
         progress: 0.52,
-        detail: 'Uploading to secure storage...',
+        detail: 'Uploading with PHP engine...',
       });
 
-      await api.post('/upload', formData, {
+      const response = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
         headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Accept: 'application/json',
           'Content-Type': 'multipart/form-data',
         },
-        transformRequest: (data) => data,
+        body: formData,
       });
+      const rawText = await response.text();
+      let payload: any = null;
+      if (rawText) {
+        try {
+          payload = JSON.parse(rawText);
+        } catch {
+          payload = { error: rawText };
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || `Upload failed (${response.status})`);
+      }
 
       updateQueueItem({
         status: 'completed',
         progress: 1,
-        detail: 'Completed',
+        detail:
+          payload?.is_chunked
+            ? `Completed • ${payload?.chunk_count || 1} parts`
+            : 'Completed • PHP upload',
       });
 
       setLastUpload({
@@ -106,7 +143,7 @@ export default function UploadScreen() {
       updateQueueItem({
         status: 'error',
         progress: 1,
-        detail: error.response?.data?.error || 'Upload failed',
+        detail: error.message || 'Upload failed',
       });
     } finally {
       queueRef.current = queueRef.current.filter((item) => item.id !== current.id);
@@ -116,7 +153,7 @@ export default function UploadScreen() {
         processQueue();
       }
     }
-  }, []);
+  }, [token]);
 
   const enqueueUpload = useCallback(async (uri: string, name: string, mimeType: string, size?: number | null) => {
     const queueItem: UploadQueueItem = {
@@ -127,7 +164,7 @@ export default function UploadScreen() {
       sizeLabel: formatBytes(size || 0),
       progress: 0,
       status: 'queued',
-      detail: 'Waiting in queue',
+      detail: 'Waiting in queue • PHP engine',
     };
 
     queueRef.current = [...queueRef.current, queueItem];
@@ -142,11 +179,18 @@ export default function UploadScreen() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
+        multiple: true,
       });
 
       if (result.canceled) return;
-      const asset = result.assets[0];
-      await enqueueUpload(asset.uri, asset.name, asset.mimeType || 'application/octet-stream', asset.size);
+      setSelectionNotice(
+        result.assets.length > 1
+          ? `${result.assets.length} dosya secildi ve kuyruga eklendi.`
+          : '1 dosya secildi ve kuyruga eklendi.'
+      );
+      for (const asset of result.assets) {
+        await enqueueUpload(asset.uri, asset.name, asset.mimeType || 'application/octet-stream', asset.size);
+      }
     } catch {
       return;
     }
@@ -156,17 +200,24 @@ export default function UploadScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
+        allowsMultipleSelection: true,
         quality: 1,
       });
 
       if (result.canceled) return;
-      const asset = result.assets[0];
-      const filename = asset.fileName || asset.uri.split('/').pop() || 'media';
-      const mimeType =
-        asset.mimeType ||
-        (asset.type === 'video' ? 'video/mp4' : 'image/jpeg');
+      setSelectionNotice(
+        result.assets.length > 1
+          ? `${result.assets.length} medya secildi ve kuyruga eklendi.`
+          : '1 medya secildi ve kuyruga eklendi.'
+      );
+      for (const asset of result.assets) {
+        const filename = buildPickerFileName(asset);
+        const mimeType =
+          asset.mimeType ||
+          (asset.type === 'video' ? 'video/mp4' : 'image/jpeg');
 
-      await enqueueUpload(asset.uri, filename, mimeType, asset.fileSize);
+        await enqueueUpload(asset.uri, filename, mimeType, asset.fileSize);
+      }
     } catch {
       return;
     }
@@ -195,6 +246,26 @@ export default function UploadScreen() {
 
   const uploadingCount = useMemo(
     () => uploadQueue.filter((item) => item.status === 'uploading' || item.status === 'queued').length,
+    [uploadQueue]
+  );
+
+  const batchProgress = useMemo(() => {
+    if (uploadQueue.length === 0) {
+      return 0;
+    }
+
+    const total = uploadQueue.reduce((sum, item) => {
+      if (item.status === 'completed' || item.status === 'error') {
+        return sum + 1;
+      }
+      return sum + item.progress;
+    }, 0);
+
+    return total / uploadQueue.length;
+  }, [uploadQueue]);
+
+  const finishedCount = useMemo(
+    () => uploadQueue.filter((item) => item.status === 'completed' || item.status === 'error').length,
     [uploadQueue]
   );
 
@@ -243,7 +314,30 @@ export default function UploadScreen() {
           </Text>
         </TouchableOpacity>
 
+        {selectionNotice ? (
+          <TouchableOpacity
+            style={[styles.selectionNoticeCard, isDarkMode && styles.surfaceDark, isDarkMode && styles.borderDark]}
+            activeOpacity={0.9}
+            onPress={() => setSelectionNotice('')}
+          >
+            <MaterialIcons name="info-outline" size={18} color="#2563eb" />
+            <Text style={[styles.selectionNoticeText, isDarkMode && styles.primaryTextDark]}>{selectionNotice}</Text>
+          </TouchableOpacity>
+        ) : null}
+
         <Text style={[styles.sectionTitle, isDarkMode && styles.primaryTextDark]}>Choose Source</Text>
+
+        <View style={[styles.autoEngineCard, isDarkMode && styles.surfaceDark, isDarkMode && styles.borderDark]}>
+          <View style={[styles.autoEngineIcon, { backgroundColor: '#dbeafe' }]}>
+            <MaterialIcons name="bolt" size={20} color="#2563eb" />
+          </View>
+          <View style={styles.sourceContent}>
+            <Text style={[styles.sourceTitle, isDarkMode && styles.primaryTextDark]}>PHP Upload Engine</Text>
+            <Text style={[styles.sourceText, isDarkMode && styles.secondaryTextDark]}>
+              System uploads with PHP and chunks large files when needed.
+            </Text>
+          </View>
+        </View>
 
         <TouchableOpacity
           style={[styles.sourceCard, isDarkMode && styles.surfaceDark, isDarkMode && styles.borderDark]}
@@ -272,6 +366,23 @@ export default function UploadScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, isDarkMode && styles.primaryTextDark]}>Active Uploads</Text>
+
+        {uploadQueue.length > 0 ? (
+          <View style={[styles.batchCard, isDarkMode && styles.surfaceDark, isDarkMode && styles.borderDark]}>
+            <View style={styles.batchHeader}>
+              <Text style={[styles.batchTitle, isDarkMode && styles.primaryTextDark]}>Toplam ilerleme</Text>
+              <Text style={[styles.batchValue, isDarkMode && styles.secondaryTextDark]}>
+                {finishedCount}/{uploadQueue.length} tamamlandi
+              </Text>
+            </View>
+            <Text style={[styles.batchSubtitle, isDarkMode && styles.secondaryTextDark]}>
+              Tum secili dosyalar icin genel ilerleme: {(batchProgress * 100).toFixed(0)}%
+            </Text>
+            <View style={[styles.progressTrack, isDarkMode && styles.progressTrackDark]}>
+              <View style={[styles.progressFill, { width: `${Math.max(batchProgress * 100, 6)}%` }]} />
+            </View>
+          </View>
+        ) : null}
 
         {uploadQueue.length > 0 ? (
           uploadQueue.map((item) => {
@@ -428,6 +539,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
   },
+  selectionNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  selectionNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1e3a8a',
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -444,6 +573,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eef2f7',
     marginBottom: 12,
+  },
+  autoEngineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#eef2f7',
+    marginBottom: 12,
+  },
+  autoEngineIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
   sourceIcon: {
     width: 48,
@@ -465,6 +612,36 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: '#6b7280',
     fontSize: 13,
+  },
+  batchCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#eef2f7',
+    padding: 16,
+    marginBottom: 12,
+  },
+  batchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  batchTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  batchValue: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  batchSubtitle: {
+    marginTop: 6,
+    marginBottom: 10,
+    fontSize: 12,
+    color: '#6b7280',
   },
   uploadCard: {
     flexDirection: 'row',

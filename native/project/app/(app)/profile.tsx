@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet, Switch, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet, Switch, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useMemo, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'expo-router';
@@ -22,6 +22,11 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
+  const [editFirstName, setEditFirstName] = useState(user?.first_name || '');
+  const [editLastName, setEditLastName] = useState(user?.last_name || '');
+  const [editEmail, setEditEmail] = useState(user?.email || '');
+  const [savingProfile, setSavingProfile] = useState(false);
   const storageUsed = user?.stats?.storage_used || 0;
   const storageLimit = user?.stats?.storage_limit || 0;
   const storagePercent = storageLimit > 0 ? Math.min((storageUsed / storageLimit) * 100, 100) : 0;
@@ -67,6 +72,36 @@ export default function ProfileScreen() {
       Alert.alert('API Key Generated', `Your new key:\n${res.data.key}`);
     } catch {
       Alert.alert('Error', 'Failed to generate key');
+    }
+  };
+
+  const openEditProfile = () => {
+    setEditFirstName(user?.first_name || '');
+    setEditLastName(user?.last_name || '');
+    setEditEmail(user?.email || '');
+    setEditProfileVisible(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editFirstName.trim() || !editLastName.trim() || !editEmail.trim()) {
+      Alert.alert('Eksik Bilgi', 'Ad, soyad ve email alanlari zorunlu.');
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      const response = await api.put('/auth/profile', {
+        first_name: editFirstName.trim(),
+        last_name: editLastName.trim(),
+        email: editEmail.trim(),
+      });
+      setUser(response.data);
+      setEditProfileVisible(false);
+      Alert.alert('Basarili', 'Profil bilgileri guncellendi.');
+    } catch (error: any) {
+      Alert.alert('Guncelleme Hatasi', error.response?.data?.error || 'Profil bilgileri guncellenemedi.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -121,18 +156,20 @@ export default function ProfileScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, isDarkMode && styles.fieldLabelDark]}>FULL NAME</Text>
-            <View style={[styles.fieldCard, isDarkMode && styles.cardDark]}>
+            <TouchableOpacity style={[styles.fieldCard, isDarkMode && styles.cardDark]} onPress={openEditProfile} activeOpacity={0.85}>
               <MaterialIcons name="person" size={20} color={isDarkMode ? '#94a3b8' : '#9ca3af'} />
               <Text style={[styles.fieldValue, isDarkMode && styles.primaryTextDark]}>{user?.first_name} {user?.last_name}</Text>
-            </View>
+              <MaterialIcons name="edit" size={18} color={isDarkMode ? '#94a3b8' : '#9ca3af'} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, isDarkMode && styles.fieldLabelDark]}>EMAIL ADDRESS</Text>
-            <View style={[styles.fieldCard, isDarkMode && styles.cardDark]}>
+            <TouchableOpacity style={[styles.fieldCard, isDarkMode && styles.cardDark]} onPress={openEditProfile} activeOpacity={0.85}>
               <MaterialIcons name="mail" size={20} color={isDarkMode ? '#94a3b8' : '#9ca3af'} />
               <Text style={[styles.fieldValue, isDarkMode && styles.primaryTextDark]}>{user?.email || '-'}</Text>
-            </View>
+              <MaterialIcons name="edit" size={18} color={isDarkMode ? '#94a3b8' : '#9ca3af'} />
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.storageCard, isDarkMode && styles.cardDark]}>
@@ -208,11 +245,11 @@ export default function ProfileScreen() {
                 <MaterialIcons name="chevron-right" size={22} color={isDarkMode ? '#64748b' : '#9ca3af'} />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(app)/change-password')}>
                 <View style={[styles.menuIconWrap, isDarkMode && styles.menuIconWrapDark]}>
                   <MaterialIcons name="lock" size={18} color={isDarkMode ? '#cbd5e1' : '#4b5563'} />
                 </View>
-                <Text style={[styles.menuText, isDarkMode && styles.primaryTextDark]}>Security</Text>
+                <Text style={[styles.menuText, isDarkMode && styles.primaryTextDark]}>Sifre Degistir</Text>
                 <MaterialIcons name="chevron-right" size={22} color={isDarkMode ? '#64748b' : '#9ca3af'} />
               </TouchableOpacity>
             </View>
@@ -289,6 +326,57 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={editProfileVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditProfileVisible(false)}
+      >
+        <View style={styles.editOverlay}>
+          <View style={[styles.editCard, isDarkMode && styles.cardDark]}>
+            <Text style={[styles.editTitle, isDarkMode && styles.primaryTextDark]}>Profili Duzenle</Text>
+
+            <Text style={[styles.editLabel, isDarkMode && styles.secondaryTextDark]}>Ad</Text>
+            <TextInput
+              style={[styles.editInput, isDarkMode && styles.inputDark, isDarkMode && styles.primaryTextDark]}
+              value={editFirstName}
+              onChangeText={setEditFirstName}
+              placeholder="Ad"
+              placeholderTextColor={isDarkMode ? '#64748b' : '#9ca3af'}
+            />
+
+            <Text style={[styles.editLabel, isDarkMode && styles.secondaryTextDark]}>Soyad</Text>
+            <TextInput
+              style={[styles.editInput, isDarkMode && styles.inputDark, isDarkMode && styles.primaryTextDark]}
+              value={editLastName}
+              onChangeText={setEditLastName}
+              placeholder="Soyad"
+              placeholderTextColor={isDarkMode ? '#64748b' : '#9ca3af'}
+            />
+
+            <Text style={[styles.editLabel, isDarkMode && styles.secondaryTextDark]}>Email</Text>
+            <TextInput
+              style={[styles.editInput, isDarkMode && styles.inputDark, isDarkMode && styles.primaryTextDark]}
+              value={editEmail}
+              onChangeText={setEditEmail}
+              placeholder="Email"
+              placeholderTextColor={isDarkMode ? '#64748b' : '#9ca3af'}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <View style={styles.editActions}>
+              <TouchableOpacity onPress={() => setEditProfileVisible(false)} disabled={savingProfile}>
+                <Text style={[styles.editCancel, isDarkMode && styles.secondaryTextDark]}>Vazgec</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.editSaveButton, savingProfile && styles.editSaveButtonDisabled]} onPress={handleSaveProfile} disabled={savingProfile}>
+                {savingProfile ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.editSaveText}>Kaydet</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showPlanModal}
@@ -551,6 +639,10 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#111827',
     fontWeight: '600',
+  },
+  inputDark: {
+    backgroundColor: '#111827',
+    borderColor: '#1e293b',
   },
   primaryTextDark: {
     color: '#f8fafc',
@@ -905,5 +997,71 @@ const styles = StyleSheet.create({
     borderColor: '#eef2f7',
     padding: 16,
     gap: 10,
+  },
+  editOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  editCard: {
+    width: '100%',
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    padding: 20,
+  },
+  editTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  editLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  editInput: {
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 14,
+    backgroundColor: '#f8fafc',
+    color: '#111827',
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 20,
+  },
+  editCancel: {
+    fontWeight: '700',
+    color: '#6b7280',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  editSaveButton: {
+    minWidth: 108,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#3e577a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  editSaveButtonDisabled: {
+    opacity: 0.7,
+  },
+  editSaveText: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });

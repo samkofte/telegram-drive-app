@@ -1,83 +1,127 @@
-# Telegram Drive PHP (Hybrid)
+# Telegram Drive PHP
 
-Fully functional Telegram Drive implementation using PHP as the core API/Frontend and a minimal Python bridge for high-performance MTProto file operations.
+Telegram Drive'in PHP tabanli ana backend ve web arayuzu. Bu klasor; auth, upload, preview, stream, cop kutusu, paylasim, ZIP indirme ve web dashboard akislarini tek katmanda toplar.
 
-## 🌟 Features
-- **Unlimited Cloud Storage**: Uses Telegram as a storage backend.
-- **Large File Support**: Upload and download files up to 2GB (via Python Bridge).
-- **Video Streaming**: Stream uploaded videos directly in the browser with seek support (Range headers).
-- **User Management**: Authentication system with JWT, user roles (Admin/User), and profile management.
-- **Modern UI**: Glassmorphism design, responsive dashboard, and drag-and-drop uploads.
-- **API System**: Dedicated API endpoints with API Key support for external integrations.
+## Ozellikler
 
-## 🏗 Architecture
-This project uses a hybrid architecture to combine the best of both worlds:
-- **PHP 8.2+ (Slim Framework)**: Handles the web server, authentication, database, UI, and business logic.
-- **Python (FastAPI + Telethon)**: Runs as a microservice (Port 8002) to handle heavy MTProto operations (Large uploads/downloads/streaming) that PHP struggles with.
+- Telegram'i depolama backend'i olarak kullanma
+- JWT tabanli auth ve profil yonetimi
+- MySQL uzerinde dosya, klasor ve paylasim metadata'si
+- Klasor olusturma, renk ve ikon secimi
+- Favoriler, cop kutusu, geri yukleme ve kalici silme
+- Resim preview ve video stream
+- Buyuk dosyalarda chunk upload / chunk download
+- Tekli paylasim linkleri
+- Coklu secim ile paylasim koleksiyonu olusturma
+- Secili dosyalari ZIP olarak tek indirme
+- Ayrı paylasim merkezi sayfasi
 
-## 🚀 Installation
+## Onemli Dosyalar
 
-### 1. Prerequisites
-- PHP 8.2 or higher
+- `public/index.php`: API route'lari, auth middleware, download, preview, share ve ZIP endpoint'leri
+- `src/Database.php`: tablo olusturma ve schema uyumlulugu
+- `templates/index.html`: ana web dashboard
+- `templates/shares.html`: paylasim merkezi
+- `public/js/index.js`: dashboard state ve etkileşim mantigi
+- `public/js/shares.js`: paylasim listeleri
+- `public/css/index-dashboard.css`: dashboard tasarimi
+- `public/css/shares.css`: paylasim merkezi tasarimi
+
+## Web Dashboard
+
+Web arayuzunde su akislar bulunur:
+
+- dosya ve klasor arama
+- favoriler ve cop kutusu modlari
+- dosya kartlarindan hizli secim
+- toplu tasima, toplu silme, toplu geri yukleme
+- tek tek indirme ve ZIP indirme
+- surukle birak ile klasore tasima
+- dosya preview modal'i
+- ayri paylasim merkezi ve koleksiyon sayfalari
+
+## Kurulum
+
+### Gereksinimler
+
+- PHP 8.2+
 - Composer
-- Python 3.9+
-- MySQL/MariaDB
+- MySQL veya MariaDB
+- Telegram bot tokenlari
 
-### 2. Setup (PHP)
-1. Clone the repository.
-2. Install PHP dependencies:
-   ```bash
-   composer install
-   ```
-3. Configure your environment:
-   - Rename `.env.example` to `.env` (or create one).
-   - Set your database credentials and Telegram API keys.
-   ```ini
-   DB_HOST=localhost
-   DB_NAME=telegram_drive
-   DB_USER=root
-   DB_PASS=
-   
-   TELEGRAM_BOT_TOKEN=your_bot_token
-   TELEGRAM_API_ID=your_api_id
-   TELEGRAM_API_HASH=your_api_hash
-   TELEGRAM_CHAT_ID=your_chat_id
-   
-   PYTHON_API_URL=http://localhost:8002
-   SECRET_KEY=your_random_secret_string
-   ```
-4. Start the PHP server:
-   ```bash
-   php -S localhost:8000 -t public
-   ```
+### Adimlar
 
-### 3. Setup (Python Bridge)
-1. Go to `python_bridge` directory.
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the bridge service:
-   ```bash
-   python main.py
-   ```
+1. Bagimliliklari kur:
 
-## 🛠 Usage
-- **Web Interface**: Go to `http://localhost:8000`.
-- **API Documentation**: See `public/api/documentation.md`.
-- **API Tester**: Go to `http://localhost:8000/api/tester.html`.
+```bash
+composer install
+```
 
-## 🔒 Security
-- **JWT Auth**: Secure user sessions.
-- **API Keys**: Generate API keys in your profile for external access.
-- **Role-Based Access**: Admins have a dedicated dashboard for user/file management.
+2. `.env` dosyasini hazirla:
 
-## 🤝 Contributing
-1. Fork the project.
-2. Create your feature branch.
-3. Commit your changes.
-4. Push to the branch.
-5. Open a Pull Request.
+```ini
+DB_HOST=localhost
+DB_NAME=telegram_drive
+DB_USER=root
+DB_PASS=
 
-## 📝 License
-This project is open-source and available under the generic MIT license.
+TELEGRAM_BOT_TOKEN=bot_token_1,bot_token_2
+TELEGRAM_CHAT_ID=your_chat_id
+
+SECRET_KEY=your_random_secret_string
+```
+
+3. Gelistirme sunucusunu baslat:
+
+```bash
+php -S localhost:8000 -t public public/index.php
+```
+
+4. Tarayicida ac:
+
+```text
+http://localhost:8000
+```
+
+## Veritabani
+
+Uygulama aktif akisinda MySQL kullanir. `Database::createTables()` her calismada eksik tablo veya kolonlari tamamlamaya calisir.
+
+Olusan temel tablolar:
+
+- `users`
+- `folders`
+- `files`
+- `file_parts`
+- `download_logs`
+- `api_keys`
+- `share_collections`
+- `share_collection_files`
+
+## ZIP Indirme Notu
+
+- `ZipArchive` extension varsa dogrudan PHP uzerinden ZIP olusturulur.
+- Extension yoksa Windows ortaminda PowerShell `Compress-Archive` fallback'i kullanilir.
+- Bu sayede gelistirme ortami farkli olsa da toplu ZIP indirme akisi calismaya devam eder.
+
+## API ve Kullanim
+
+- API dokumani: `public/api/documentation.md`
+- Web arayuzu: `/`
+- Profil sayfasi: `/profile`
+- Paylasim merkezi: `/shares`
+- Public tekli paylasim: `/share/{token}`
+- Public koleksiyon sayfasi: `/share/collection/{token}`
+
+## Guvenlik
+
+- JWT ile yetkili oturum
+- API key destegi
+- Telegram dosya URL'lerini dogrudan expose etmeyen proxy indirme akisi
+- Kullaniciya gore dosya ve klasor filtreleme
+
+## Notlar
+
+- Buyuk dosyalarda preview kisitlanabilir.
+- Chunked dosyalar indirme aninda backend tarafinda yeniden birlestirilir.
+- Built-in PHP server ile CSS ve JS dosyalarinin dogru servis edilmesi icin router olarak `public/index.php` kullanilir.

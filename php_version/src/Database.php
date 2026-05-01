@@ -111,12 +111,25 @@ class Database
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
             name VARCHAR(255) NOT NULL,
+            color VARCHAR(7) DEFAULT '#3e577a',
+            icon VARCHAR(64) DEFAULT 'folder',
             parent_id INT DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             deleted_at TIMESTAMP NULL DEFAULT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
         )");
+
+        $folderColumns = [
+            'color' => "VARCHAR(7) DEFAULT '#3e577a' AFTER name",
+            'icon' => "VARCHAR(64) DEFAULT 'folder' AFTER color",
+        ];
+
+        foreach ($folderColumns as $columnName => $definition) {
+            if (!self::columnExists($db, 'folders', $columnName)) {
+                $db->exec("ALTER TABLE folders ADD COLUMN {$columnName} {$definition}");
+            }
+        }
 
         // Files table
         $db->exec("CREATE TABLE IF NOT EXISTS files (
@@ -153,6 +166,9 @@ class Database
             'telegram_url' => "TEXT NULL AFTER file_path",
             'uploaded_by' => "BIGINT NULL AFTER telegram_url",
             'bot_token' => "VARCHAR(255) NULL AFTER user_id",
+            'upload_engine' => "VARCHAR(20) DEFAULT 'php' AFTER bot_token",
+            'is_chunked' => "TINYINT(1) DEFAULT 0 AFTER upload_engine",
+            'chunk_count' => "INT DEFAULT 1 AFTER is_chunked",
             'folder_id' => "INT DEFAULT NULL AFTER bot_token",
             'is_favorite' => "TINYINT(1) DEFAULT 0 AFTER folder_id",
             'deleted_at' => "TIMESTAMP NULL DEFAULT NULL AFTER updated_at",
@@ -183,6 +199,23 @@ class Database
                 // Ignore if the constraint already exists under a different auto-generated name.
             }
         }
+
+        $db->exec("CREATE TABLE IF NOT EXISTS file_parts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            file_id INT NOT NULL,
+            part_index INT NOT NULL,
+            telegram_file_id VARCHAR(255) NOT NULL,
+            telegram_message_id BIGINT NULL,
+            part_name VARCHAR(500) NULL,
+            part_size BIGINT NOT NULL,
+            mime_type VARCHAR(255) NULL,
+            bot_token VARCHAR(255) NULL,
+            telegram_url TEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_file_part_index (file_id, part_index),
+            KEY idx_file_parts_telegram_file_id (telegram_file_id),
+            CONSTRAINT fk_file_parts_file FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+        )");
 
         // Tags table
         $db->exec("CREATE TABLE IF NOT EXISTS tags (
@@ -223,6 +256,26 @@ class Database
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_used TIMESTAMP NULL DEFAULT NULL,
             expires_at TIMESTAMP NULL DEFAULT NULL
+        )");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS share_collections (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            share_token VARCHAR(64) UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS share_collection_files (
+            collection_id INT NOT NULL,
+            file_id INT NOT NULL,
+            sort_order INT DEFAULT 0,
+            PRIMARY KEY (collection_id, file_id),
+            KEY idx_share_collection_order (collection_id, sort_order),
+            FOREIGN KEY (collection_id) REFERENCES share_collections(id) ON DELETE CASCADE,
+            FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
         )");
     }
 }

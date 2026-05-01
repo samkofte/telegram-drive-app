@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Drive - Paylaşım Merkezi</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/shares.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="window.location.href='/'">💠 Telegram Drive</div>
+        <div class="user-info">
+            <button class="btn btn-outline" onclick="window.location.href='/'">📁 Dosyalar</button>
+            <button class="btn btn-outline" onclick="window.location.href='/profile'">👤 Profil</button>
+            <button class="btn btn-danger" onclick="logout()">Çıkış</button>
+        </div>
+    </nav>
+
+    <main class="shares-shell">
+        <section class="shares-hero">
+            <div>
+                <div class="hero-badge">Paylaşım Merkezi</div>
+                <h1>Tekli ve çoklu paylaşım linklerini tek sayfadan yönet.</h1>
+                <p>Dashboard üzerinden üretilen her paylaşım burada görünür. Koleksiyon linkleri tek ZIP indirme ile birlikte gelir.</p>
+            </div>
+            <div class="hero-actions">
+                <button class="panel-btn primary" onclick="window.location.href='/'">Yeni Paylaşım Oluştur</button>
+                <button class="panel-btn" onclick="loadShareData()">Listeyi Yenile</button>
+            </div>
+        </section>
+
+        <section class="shares-grid">
+            <div class="share-panel">
+                <div class="section-head">
+                    <div>
+                        <h2>Tekli Paylaşımlar</h2>
+                        <p>Dosya kartından üretilen tekil linkler</p>
+                    </div>
+                    <div class="count-chip" id="singleShareCount">0 link</div>
+                </div>
+                <div class="share-list" id="singleShareList"></div>
+            </div>
+
+            <div class="share-panel">
+                <div class="section-head">
+                    <div>
+                        <h2>Çoklu Paylaşım Sayfaları</h2>
+                        <p>Seçili dosyaların bir araya getirildiği koleksiyonlar</p>
+                    </div>
+                    <div class="count-chip" id="collectionShareCount">0 koleksiyon</div>
+                </div>
+                <div class="share-list" id="collectionShareList"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/shares.js"></script>
+</body>
+
+</html>

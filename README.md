@@ -1,130 +1,106 @@
 # Telegram Drive App
 
-Bu depo, Telegram'i dosya depolama katmani olarak kullanan cok katmanli bir uygulama ailesini icerir. Proje; React Native tabanli mobil istemciyi, PHP tabanli API ve web surumunu, ayrica deneysel Python surumunu ayni repoda toplar.
+Telegram'i depolama katmani olarak kullanan bu repo, ayni urunun mobil, PHP web/API ve deneysel Python varyantlarini tek yerde toplar. Ana aktif akis `php_version` ve `native/project` uzerinden ilerler.
 
-## Genel Bakis
+## Neler Var
 
-Projenin amaci kullanicilarin dosyalarini Telegram uzerine yukleyip uygulama icinden yonetebilmesi, goruntuleyebilmesi, paylasabilmesi ve indirebilmesidir.
+- React Native mobil istemci
+- Slim 4 tabanli PHP backend ve web arayuzu
+- Telegram bot tabanli upload, download ve stream akisi
+- Klasorleme, favori, cop kutusu ve paylasim ozellikleri
+- Tekli ve coklu dosya paylasim sayfalari
+- Coklu secim ve ZIP indirme akisi
+- Buyuk dosyalar icin parcali upload ve yeniden birlestirme
 
-Baslica yetenekler:
-
-- Telegram uzerine dosya yukleme
-- Dosya ve klasor listeleme
-- Favori, cop kutusu ve paylasim akislari
-- Uygulama icinde resim ve video onizleme
-- Video stream oynatma
-- Dosya gorunen adini uygulama icinde yeniden adlandirma
-- Dashboard, son aktiviteler ve hizli islemler akislari
-- JWT tabanli kimlik dogrulama
-
-## Dizin Yapisi
+## Dizinler
 
 ### `native/project`
 
-Expo + React Native ile gelistirilmis mobil istemci.
+Expo Router tabanli mobil istemci.
 
-Onemli teknolojiler:
+Baslica alanlar:
+
+- `app/(app)/dashboard.tsx`: istatistikler, hizli erisim, son aktiviteler
+- `app/(app)/files.tsx`: dosya gezgini, klasor akisi, favori, cop kutusu, paylasim
+- `app/(app)/upload.tsx`: yukleme kaynagi, kuyruk ve multipart akisi
+- `app/(app)/profile.tsx`: profil, plan ve ayarlar
+- `services/uploadFormData.ts`: mobilde ortak multipart/form-data yardimcisi
+
+Kullanimdaki teknolojiler:
 
 - Expo SDK 54
-- Expo Router
 - React Native 0.81
-- Zustand
+- Expo Router
 - Axios
 - Expo Video
-- Expo Image Picker / Document Picker
-
-Onemli ekranlar:
-
-- `app/(app)/dashboard.tsx`: Ana ekran, istatistikler, hizli islemler, son aktiviteler
-- `app/(app)/files.tsx`: Dosya gezgini, arama, filtreler, onizleme, indirme, paylasma
-- `app/(app)/upload.tsx`: Yukleme kuyrugu ve kaynak secimi
-- `app/(app)/profile.tsx`: Profil ve ayarlar
-- `app/(auth)/*`: Giris ve kayit akislari
+- Expo Document Picker / Image Picker
 
 ### `php_version`
 
-Slim Framework tabanli PHP backend ve web istemcisi.
+Uretimde esas backend ve tarayici tabanli dosya merkezi burada yer alir.
 
-Onemli teknolojiler:
+Baslica alanlar:
 
-- PHP 8+
-- Slim Framework 4
-- JWT
-- PDO
-- Guzzle
+- `public/index.php`: tum API route'lari, stream, preview, paylasim, ZIP bundle, auth
+- `templates/index.html`: web dashboard
+- `templates/shares.html`: ayri paylasim merkezi
+- `public/js/index.js`: dashboard etkileşimleri
+- `src/Database.php`: tablo kurulum ve schema uyumlulugu
 
-Baslica sorumluluklar:
+Desteklenen yetenekler:
 
-- Kimlik dogrulama
-- Dosya ve klasor API endpoint'leri
-- Telegram bot entegrasyonu
-- Stream, preview ve paylasim endpoint'leri
-- Veritabani tablolari ve migration benzeri kurulum mantigi
+- JWT tabanli auth
+- klasor olusturma, renk ve ikon secimi
+- favoriler, cop kutusu, geri yukleme ve kalici silme
+- dosya yeniden adlandirma
+- Telegram uzerinden guvenli indirme ve stream
+- tekli paylasim linki
+- coklu secim ile paylasim koleksiyonu olusturma
+- secili dosyalari tek ZIP olarak indirme
+- buyuk dosyalarda chunk metadata ile yeniden birlestirme
 
 ### `python_version`
 
-Python tarafinda alternatif / deneysel backend yapisi icin bulunan klasordur. Ana mobil akisin merkezinde su anda `php_version` yer alir.
+Alternatif / deneysel backend calismalari. Ana urun akisinin merkezinde degildir.
 
-### `.trae`
+## Mimari Ozet
 
-IDE ve gelistirme surecinde olusan belge ve yardimci dosyalar burada tutulur.
+1. Mobil veya web istemci dosya ve klasor islemlerini API uzerinden baslatir.
+2. PHP backend dosyayi Telegram'a yukler veya Telegram'dan stream eder.
+3. Dosya metadata'si MySQL uzerinde tutulur.
+4. Web ve mobil istemciler ayni API davranislarini kullanir.
+5. Paylasim akislarinda Telegram dogrudan expose edilmez; indirme backend uzerinden proxy edilir.
 
-## Uygulama Mimarisi
+## One Cikan Akislar
 
-Genel akis su sekildedir:
+### Mobil
 
-1. Mobil istemci dosya secimi yapar.
-2. Istemci backend API'sine multipart upload gonderir.
-3. PHP backend dosyayi Telegram botu uzerinden yukler.
-4. Telegram cevabindan dosya kimligi ve mesaj bilgileri alinip veritabanina yazilir.
-5. Mobil uygulama dosyalari `/files` benzeri endpoint'lerden tekrar ceker.
-6. Onizleme ve video stream islemleri backend uzerinden yetkili sekilde sunulur.
+- dashboard ve hizli erisim
+- ortak multipart upload yardimcisi
+- favori, cop kutusu, geri yukleme
+- paylasim linki ve onizleme
+- buyuk dosya uyari ve preview kisitlari
 
-## Desteklenen Akislar
+### PHP Web
 
-### Mobil uygulama tarafinda
-
-- Dashboard uzerinden hizli erisim
-- Son aktiviteler kartindan ilgili dosyayi dogrudan acma
-- Dosya listesinde arama
-- Favorilere ekleme / cikarama
-- Cop kutusuna tasima / geri alma
-- Dosya indirme
-- Paylasim linki olusturma
-- Video onizleme ve stream
-- Uygulama icinde dosya gorunen adini guncelleme
-
-### Backend tarafinda
-
-- Kullanici bazli dosya filtreleme
-- Favori ve cop kutusu durum yonetimi
-- `display_name` ve `file_name` ayrimi
-- Video ve document payload'larini ayri ayri ele alma
-- Eski veritabani semalari icin eksik kolonlari tamamlama mantigi
+- modern dashboard arayuzu
+- klasor kartlari ve hizli klasor ekleme
+- dosya karti uzerinden secim, tasima ve toplu aksiyonlar
+- ayri indirme alani
+- ayri paylasim merkezi
+- public coklu paylasim sayfasi
 
 ## Kurulum
 
-## 1. Mobil Uygulama
-
-Klasor:
+### Mobil
 
 ```bash
 cd native/project
-```
-
-Bagimliliklar:
-
-```bash
 npm install
-```
-
-Gelistirme sunucusu:
-
-```bash
 npx expo start
 ```
 
-Kisa scriptler:
+Yardimci komutlar:
 
 ```bash
 npm run android
@@ -133,70 +109,39 @@ npm run web
 npm run lint
 ```
 
-## 2. PHP Backend
-
-Klasor:
+### PHP
 
 ```bash
 cd php_version
-```
-
-Composer bagimliliklari:
-
-```bash
 composer install
+php -S localhost:8000 -t public public/index.php
 ```
 
-Ornek gelistirme calistirma:
+Gereksinimler:
 
-```bash
-php -S localhost:8000 -t public
-```
+- PHP 8.2+
+- Composer
+- MySQL veya MariaDB
+- Telegram bot tokenlari
 
-Not:
+## Ortam Notlari
 
-- Proje veritabani olarak yerel dosya / SQL tabanli yapi kullaniyor olabilir.
-- Telegram bot bilgileri, veritabani ayarlari ve secret key degerleri ortam ayarlarina gore duzenlenmelidir.
-
-## Onemli Notlar
-
-- Mobil istemci ile backend arasindaki API tabani `native/project/constants/Config.ts` icinden yonetilir.
-- Video oynatma tarafinda `expo-video` kullanilir.
-- Dosya yeniden adlandirma isleminde gercek dosya adi korunur, uygulama icinde gorunen ad `display_name` olarak kullanilir.
-- Arama ve listeleme akislarinda `display_name` desteklenir.
-- Geri navigasyon davranisi son gelinen ekran mantigina gore iyilestirilmistir.
+- `php_version` aktif veritabani akisinda MySQL kullanir.
+- `Database::createTables()` eksik tablo ve kolonlari tamamlayarak calisir.
+- Built-in PHP server ile gelistirme yaparken `public/index.php` router olarak kullanilmalidir.
+- ZIP indirme akisi `ZipArchive` varsa onu kullanir; yoksa Windows ortaminda PowerShell fallback ile ZIP olusturur.
 
 ## Gelistirme Notlari
 
-Projede son donemde su alanlarda iyilestirmeler yapildi:
+Son donemde eklenen veya guclendirilen alanlar:
 
-- Video yukleme cevabinda `video` payload destegi
-- Veritabani uyumlulugu icin eksik kolonlari tamamlama
-- Son aktivitelerden dosya preview acilisi
-- Video onizleme deneyimi
-- `expo-av` yerine `expo-video` gecisi
-- Dosya yeniden adlandirma akisi
-- Upload ve files ekranlarinda daha dogal geri donus davranisi
-
-## Depoya Dahil Icerikler
-
-Bu repoda sadece mobil kaynak kodu degil, ayni zamanda:
-
-- PHP backend
-- Python alternatif denemeleri
-- Tasarim referanslari
-- Gelistirme notlari
-- Yerel veritabani dosyalari
-
-da yer alabilir.
-
-## Onerilen Sonraki Adimlar
-
-- Koke `.gitignore` eklenmesi
-- Ortam degiskenlerinin standardize edilmesi
-- Tek bir merkezi kurulum rehberi olusturulmasi
-- Mobil ve backend icin ayri release notlari tutulmasi
+- mobil ve PHP web tarafi arasinda ozellik esitligi
+- ayri paylasim merkezi ve coklu paylasim koleksiyonlari
+- secili dosyalari ZIP olarak tek indirme
+- cop kutusundan Telegram dahil kalici silme
+- buyuk dosyalar icin parcali upload ve indirme
+- PHP dashboard icin yeni CSS/JS ayrimi
 
 ## Lisans
 
-Bu depo icin acik bir lisans tanimi henuz eklenmemisse, dagitim oncesinde lisans dosyasi eklenmesi onerilir.
+Bu repo icin lisans dosyasi eklenmesi onerilir. Mevcut durumda dagitim yapilacaksa lisans ve ortam degiskeni dokumantasyonu netlestirilmelidir.

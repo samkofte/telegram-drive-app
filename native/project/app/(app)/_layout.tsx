@@ -79,6 +79,12 @@ export default function AppLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="change-password"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

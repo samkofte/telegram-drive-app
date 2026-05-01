@@ -1,289 +1,388 @@
 import os
-import asyncio
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from telethon import TelegramClient, events
-from telethon.sessions import StringSession
+import shutil
+import tempfile
+import traceback
+import urllib.parse
+import uuid
+from datetime import datetime
+
+import aiohttp
 import mysql.connector
 from dotenv import load_dotenv
-import shutil
-import uuid
-import traceback
-import logging
-import urllib.parse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
-# Load .env from current directory AND parent directory
-load_dotenv(os.path.join(os.getcwd(), '.env'))
-load_dotenv(os.path.join(os.path.dirname(os.getcwd()), '.env'))
-
-import glob
-
-def cleanup_orphaned_temps():
-    try:
-        orphaned_files = glob.glob("temp_upload_*.dat")
-        for f in orphaned_files:
-            print(f"CLEANUP: Removing orphaned temp file: {f}")
-            os.remove(f)
-    except Exception as e:
-        print(f"CLEANUP ERROR: {e}")
+load_dotenv(os.path.join(os.getcwd(), ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.getcwd()), ".env"))
 
 app = FastAPI()
-
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with your specific domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Config
-API_ID = int(os.getenv('TELEGRAM_API_ID', 0))
-API_HASH = os.getenv('TELEGRAM_API_HASH', '')
-# Only take the first token if there are multiple separated by comma
-BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '').split(',')[0].strip()
-CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+BOT_UPLOAD_LIMIT = int(os.getenv("TELEGRAM_BOT_UPLOAD_LIMIT", 45 * 1024 * 1024))
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', '127.0.0.1'),
-    'port': int(os.getenv('DB_PORT', 3306)),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASS', ''),
-    'database': os.getenv('DB_NAME', 'telegram_bot'),
-    'charset': 'utf8mb4',
-    'use_unicode': True
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("DB_PORT", 3306)),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASS", ""),
+    "database": os.getenv("DB_NAME", "telegram"),
+    "charset": "utf8mb4",
+    "use_unicode": True,
 }
 
-# we will store session string in the database for Render compatibility
-def get_session_string():
+_next_bot_index = 0
+
+
+def get_bot_tokens() -> list[str]:
+    return [token.strip() for token in os.getenv("TELEGRAM_BOT_TOKEN", "").split(",") if token.strip()]
+
+
+def get_next_bot_token(tokens: list[str]) -> str:
+    global _next_bot_index
+    if not tokens:
+        raise HTTPException(status_code=500, detail="No Telegram bot tokens configured")
+
+    token = tokens[_next_bot_index % len(tokens)]
+    _next_bot_index += 1
+    return token
+
+
+def get_user_context(user_id: int) -> dict:
+    connection = get_db_connection()
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        cursor.execute("CREATE TABLE IF NOT EXISTS system_config (config_key VARCHAR(255) PRIMARY KEY, config_value TEXT)")
-        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'telethon_session'")
-        row = cursor.fetchone()
-        conn.close()
-        return row[0] if row else None
-    except Exception as e:
-        print(f"DB Error: {e}")
-        return None
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id, first_name, last_name, username, email FROM users WHERE id = %s LIMIT 1",
+            (user_id,),
+        )
+        return cursor.fetchone() or {"id": user_id}
+    finally:
+        connection.close()
 
-def save_session_string(session_str):
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-    cursor.execute("REPLACE INTO system_config (config_key, config_value) VALUES ('telethon_session', %s)", (session_str,))
-    conn.commit()
-    conn.close()
 
-# Initialize Client
-session_string = get_session_string()
-client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+def build_caption(user: dict, filename: str) -> str:
+    first_name = (user or {}).get("first_name") or ""
+    last_name = (user or {}).get("last_name") or ""
+    full_name = f"{first_name} {last_name}".strip() or "-"
 
-@app.on_event("startup")
-async def startup():
-    cleanup_orphaned_temps()
-    try:
-        await client.start(bot_token=BOT_TOKEN)
-        new_session = client.session.save()
-        if new_session != session_string:
-            save_session_string(new_session)
-        print("Telethon Bot Started Successfully")
-    except Exception as e:
-        print(f"Failed to start Telethon: {e}")
-        print("WARNING: Python Bridge is running, but Telegram upload will fail until the Bot Token is fixed.")
+    caption = f"📁 Dosya: {filename}\n"
+    caption += f"🆔 ID: {(user or {}).get('id', '-')}\n"
+    caption += f"👤 İsim: {full_name}\n"
+
+    username = (user or {}).get("username")
+    if username:
+        caption += f"🏷️ Kullanıcı Adı: @{username}\n"
+
+    caption += f"📧 Email: {(user or {}).get('email') or '-'}\n"
+    caption += f"📅 Tarih: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    return caption
+
+
+def normalize_upload_filename(input_name: str | None, mime_type: str | None = None) -> str:
+    candidate = (input_name or "").strip() or "upload.bin"
+    candidate = urllib.parse.unquote(candidate)
+    candidate = os.path.basename(candidate.replace("\\", "/")).strip(" .")
+    if not candidate:
+        candidate = "upload.bin"
+
+    _, extension = os.path.splitext(candidate)
+    if not extension and mime_type:
+        guessed_extension = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+            "image/heic": ".heic",
+            "image/heif": ".heif",
+            "video/mp4": ".mp4",
+            "video/quicktime": ".mov",
+            "application/pdf": ".pdf",
+        }.get(mime_type.lower(), "")
+        if guessed_extension:
+            candidate = f"{candidate}{guessed_extension}"
+
+    return candidate
+
+
+def build_stored_display_name(source_name: str) -> str:
+    _, extension = os.path.splitext(source_name)
+    return f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}{extension.lower()}"
+
+
+def build_chunk_filename(original_name: str, part_number: int, part_count: int) -> str:
+    base, extension = os.path.splitext(original_name or "upload.bin")
+    safe_base = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in (base or "file"))
+    return f"{safe_base}.part{part_number:03d}of{part_count:03d}{extension}"
+
+
+def build_chunk_master_file_id() -> str:
+    return f"chunked_{uuid.uuid4().hex}"
+
+
+async def send_document(token: str, chat_id: str, file_path: str, filename: str, caption: str) -> dict:
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    form = aiohttp.FormData()
+    form.add_field("chat_id", str(chat_id))
+    form.add_field("caption", caption)
+    with open(file_path, "rb") as file_handle:
+        form.add_field("document", file_handle, filename=filename, content_type="application/octet-stream")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=form) as response:
+                payload = await response.json()
+                if response.status >= 400 or not payload.get("ok"):
+                    raise HTTPException(status_code=500, detail=payload.get("description", "Telegram upload failed"))
+                payload["used_token"] = token
+                return payload
+
+
+async def resolve_telegram_url(token: str, file_id: str) -> str | None:
+    url = f"https://api.telegram.org/bot{token}/getFile"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params={"file_id": file_id}) as response:
+            payload = await response.json()
+            if response.status >= 400 or not payload.get("ok"):
+                return None
+            file_path = payload.get("result", {}).get("file_path")
+            if not file_path:
+                return None
+            return f"https://api.telegram.org/file/bot{token}/{file_path}"
+
+
+def extract_media(payload: dict) -> dict:
+    message = payload.get("result", {})
+    media = message.get("document") or message.get("video")
+    if not media and isinstance(message.get("photo"), list) and message["photo"]:
+        media = message["photo"][-1]
+        media["mime_type"] = media.get("mime_type") or "image/jpeg"
+    if not media or not media.get("file_id"):
+        raise HTTPException(status_code=500, detail="Telegram response does not include file metadata")
+    return {
+        "file_id": media["file_id"],
+        "message_id": message.get("message_id"),
+        "file_size": int(media.get("file_size", 0)),
+        "mime_type": media.get("mime_type"),
+    }
+
+
+async def upload_via_python_engine(file_path: str, original_name: str, mime_type: str, user_id: int, chat_id: str) -> dict:
+    file_size = os.path.getsize(file_path)
+    if file_size <= 0:
+        raise HTTPException(status_code=400, detail="Empty files cannot be uploaded")
+
+    original_name = normalize_upload_filename(original_name, mime_type)
+    stored_display_name = build_stored_display_name(original_name)
+    tokens = get_bot_tokens()
+    if not tokens:
+        raise HTTPException(status_code=500, detail="No Telegram bot tokens configured")
+
+    user_context = get_user_context(user_id)
+    caption = build_caption(user_context, stored_display_name)
+    if file_size <= BOT_UPLOAD_LIMIT:
+        token = get_next_bot_token(tokens)
+        result = await send_document(token, chat_id, file_path, stored_display_name, caption)
+        media = extract_media(result)
+        used_token = result.get("used_token")
+        return {
+            "telegram_file_id": media["file_id"],
+            "telegram_message_id": media["message_id"],
+            "file_name": original_name,
+            "display_name": stored_display_name,
+            "file_size": media["file_size"] or file_size,
+            "mime_type": media["mime_type"] or mime_type,
+            "bot_token": used_token,
+            "telegram_url": await resolve_telegram_url(used_token, media["file_id"]) if used_token else None,
+            "upload_engine": "python",
+            "is_chunked": False,
+            "chunk_count": 1,
+            "parts": [],
+        }
+
+    part_count = (file_size + BOT_UPLOAD_LIMIT - 1) // BOT_UPLOAD_LIMIT
+    parts: list[dict] = []
+    bytes_remaining = file_size
+
+    with open(file_path, "rb") as source:
+        for index in range(part_count):
+            current_size = min(BOT_UPLOAD_LIMIT, bytes_remaining)
+            chunk_file = tempfile.NamedTemporaryFile(delete=False, suffix=".part")
+            chunk_path = chunk_file.name
+            try:
+                written = 0
+                while written < current_size:
+                    buffer = source.read(min(1024 * 1024, current_size - written))
+                    if not buffer:
+                        break
+                    chunk_file.write(buffer)
+                    written += len(buffer)
+                chunk_file.close()
+
+                if written != current_size:
+                    raise HTTPException(status_code=500, detail="Chunk file could not be generated correctly")
+
+                token = tokens[index % len(tokens)]
+                chunk_name = build_chunk_filename(stored_display_name, index + 1, part_count)
+                result = await send_document(token, chat_id, chunk_path, chunk_name, f"{caption}\n📦 Parça: {index + 1}/{part_count}")
+                media = extract_media(result)
+                used_token = result.get("used_token", token)
+                parts.append(
+                    {
+                        "part_index": index,
+                        "telegram_file_id": media["file_id"],
+                        "telegram_message_id": media["message_id"],
+                        "part_name": chunk_name,
+                        "part_size": written,
+                        "mime_type": mime_type,
+                        "bot_token": used_token,
+                        "telegram_url": None,
+                    }
+                )
+                bytes_remaining -= written
+            finally:
+                try:
+                    chunk_file.close()
+                except Exception:
+                    pass
+                if os.path.exists(chunk_path):
+                    os.remove(chunk_path)
+
+    return {
+        "telegram_file_id": build_chunk_master_file_id(),
+        "telegram_message_id": None,
+        "file_name": original_name,
+        "display_name": stored_display_name,
+        "file_size": file_size,
+        "mime_type": mime_type,
+        "bot_token": None,
+        "telegram_url": None,
+        "upload_engine": "python",
+        "is_chunked": True,
+        "chunk_count": part_count,
+        "parts": parts,
+    }
+
+
+def get_db_connection():
+    return mysql.connector.connect(**DB_CONFIG)
+
+
+async def stream_from_url(url: str):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status >= 400:
+                raise HTTPException(status_code=502, detail="Telegram file stream could not be opened")
+            async for chunk in response.content.iter_chunked(1024 * 1024):
+                yield chunk
+
+
+async def get_file_url_from_bot(token: str | None, file_id: str) -> str:
+    if not token:
+        raise HTTPException(status_code=500, detail="Bot token not found for file")
+    url = await resolve_telegram_url(token, file_id)
+    if not url:
+        raise HTTPException(status_code=404, detail="Telegram file path not found")
+    return url
+
 
 @app.post("/upload")
-async def upload_file(
-    file: UploadFile = File(...),
-    user_id: int = Form(...),
-    chat_id: str = Form(CHAT_ID)
-):
-    temp_filename = f"temp_upload_{uuid.uuid4().hex}.dat"
-    print(f"DEBUG: Received upload request for {file.filename} (Size: {file.size if hasattr(file, 'size') else 'unknown'})")
-    
+async def upload_file(file: UploadFile = File(...), user_id: int = Form(...), chat_id: str = Form(CHAT_ID)):
+    suffix = os.path.splitext(file.filename or "upload.bin")[1]
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix or ".bin")
+    temp_path = temp.name
+
     try:
-        print(f"DEBUG: Saving to temp file: {temp_filename}")
-        with open(temp_filename, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        file_size = os.path.getsize(temp_filename)
-        print(f"DEBUG: Temp file saved. Size: {file_size} bytes")
+        with temp:
+            shutil.copyfileobj(file.file, temp)
 
-        # Upload via Telethon
-        print(f"DEBUG: Starting Telethon upload to chat {chat_id}...")
-        
-        # Ensure chat_id is integer if possible, and remove any non-numeric chars if it's not a username
-        target_chat = chat_id
-        if isinstance(chat_id, str):
-            if chat_id.startswith('-100'):
-                try:
-                     target_chat = int(chat_id)
-                except:
-                     pass
-            elif chat_id.isdigit() or (chat_id.startswith('-') and chat_id[1:].isdigit()):
-                try:
-                    target_chat = int(chat_id)
-                except:
-                    pass
-        
-        print(f"DEBUG: Resolved target chat ID: {target_chat} (Type: {type(target_chat)})")
-
-        def progress_callback(current, total):
-            # Only log every 10% to avoid flooding
-            if total > 0:
-                pct = (current / total) * 100
-                if int(pct) % 10 == 0 or current == total:
-                    print(f"DEBUG: Upload progress: {pct:.1f}% ({current}/{total} bytes)")
-
-        # Ensure client is connected (it should be from startup)
-        if not client.is_connected():
-            print("DEBUG: Client not connected, reconnecting...")
-            await client.connect()
-
-        sent_msg = await client.send_file(
-            target_chat,
-            temp_filename,
-            caption=f"📁 {file.filename}\n👤 Yükleyen ID: {user_id}",
-            force_document=True,
-            progress_callback=progress_callback
+        payload = await upload_via_python_engine(
+            temp_path,
+            file.filename or "upload.bin",
+            file.content_type or "application/octet-stream",
+            user_id,
+            chat_id,
         )
-        
-        print(f"DEBUG: Telethon upload complete. Message ID: {sent_msg.id if sent_msg else 'FAILED'}")
-
-        # Log to Database
-        if sent_msg and sent_msg.document:
-            doc = sent_msg.document
-            conn = mysql.connector.connect(**DB_CONFIG)
-            cursor = conn.cursor()
-            
-            random_name = f"{uuid.uuid4().hex[:12]}.{file.filename.split('.')[-1]}"
-            
-            sql = """INSERT INTO files 
-                     (telegram_file_id, telegram_message_id, file_name, display_name, file_size, file_type, mime_type, user_id) 
-                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-            
-            cursor.execute(sql, (
-                str(doc.id),
-                sent_msg.id,
-                file.filename,
-                random_name,
-                doc.size,
-                file.content_type,
-                file.content_type,
-                user_id
-            ))
-            conn.commit()
-            conn.close()
-
-            return {"success": True, "message": "File uploaded via Telethon", "id": str(doc.id)}
-        
-        raise HTTPException(status_code=500, detail="Telethon upload failed")
-
-    except Exception as e:
-        error_msg = traceback.format_exc()
-        print(f"ERROR: Upload failed:\n{error_msg}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": True, "file": payload}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(exc))
     finally:
-        if os.path.exists(temp_filename):
-            print(f"DEBUG: Cleaning up temp file: {temp_filename}")
-            os.remove(temp_filename)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
-
-# ...
 
 @app.get("/download/{file_id}/{filename}")
 async def download_file(file_id: str, filename: str, request: Request, stream: bool = False):
-    print(f"DEBUG: {'Stream' if stream else 'Download'} request for ID: {file_id}, Name: {filename}")
-    
     try:
-        # Ensure client is connected
-        if not client.is_connected():
-            print("DEBUG: Client not connected in download, reconnecting...")
-            await client.connect()
-
-        # Since we have the DB, let's look up the message_id
-        conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT telegram_message_id, mime_type, file_size FROM files WHERE telegram_file_id = %s", (file_id,))
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id, telegram_file_id, file_name, mime_type, file_size, bot_token, is_chunked FROM files WHERE telegram_file_id = %s LIMIT 1",
+            (file_id,),
+        )
         file_record = cursor.fetchone()
-        conn.close()
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File metadata not found")
 
-        if not file_record or not file_record['telegram_message_id']:
-            raise HTTPException(status_code=404, detail="File metadata not found in database")
+        mime_type = file_record.get("mime_type") or "application/octet-stream"
+        file_size = int(file_record.get("file_size") or 0)
+        safe_filename = urllib.parse.quote(filename or file_record.get("file_name") or "download.bin")
+        disposition = "inline" if stream else f"attachment; filename*=UTF-8''{safe_filename}"
 
-        message_id = file_record['telegram_message_id']
-        print(f"DEBUG: Found message ID {message_id} in database")
+        if file_record.get("is_chunked"):
+            cursor.execute(
+                "SELECT telegram_file_id, bot_token FROM file_parts WHERE file_id = %s ORDER BY part_index ASC",
+                (file_record["id"],),
+            )
+            parts = cursor.fetchall()
+            if not parts:
+                raise HTTPException(status_code=404, detail="Chunk metadata not found")
 
-        msg = await client.get_messages(int(CHAT_ID) if CHAT_ID.isdigit() else CHAT_ID, ids=message_id)
-        if not msg or not msg.document:
-            raise HTTPException(status_code=404, detail="File not found on Telegram")
+            async def chunk_sender():
+                for part in parts:
+                    url = await get_file_url_from_bot(part.get("bot_token"), part["telegram_file_id"])
+                    async for chunk in stream_from_url(url):
+                        yield chunk
 
-        doc = msg.document
-        
-        file_size = file_record['file_size']
-        
-        # Handle Range Header
-        range_header = request.headers.get("Range")
-        start = 0
-        end = file_size - 1
-        
-        if range_header:
-            try:
-                # Parse Range: bytes=0- or bytes=100-200
-                h = range_header.replace("bytes=", "").split("-")
-                start = int(h[0]) if h[0] else 0
-                end = int(h[1]) if len(h) > 1 and h[1] else file_size - 1
-            except ValueError:
-                pass
-        
-        # Validation
-        if start >= file_size or end >= file_size:
-            raise HTTPException(status_code=416, detail="Range Not Satisfiable")
-            
-        chunk_length = end - start + 1
+            headers = {
+                "Content-Disposition": disposition,
+                "Content-Length": str(file_size),
+                "Accept-Ranges": "none",
+            }
+            return StreamingResponse(chunk_sender(), media_type=mime_type, headers=headers, status_code=200)
 
-        async def file_sender(offset, length):
-            # Telethon iter_download allows offset and request_size/limit
-            # We want to yield chunks.
-            async for chunk in client.iter_download(doc, offset=offset, request_size=length, limit=length):
-                yield chunk
-
-        if stream:
-            disposition = "inline"
-            status_code = 206 if range_header else 200
-        else:
-            safe_filename = urllib.parse.quote(filename)
-            disposition = f"attachment; filename*=UTF-8''{safe_filename}"
-            status_code = 200
-            start = 0
-            end = file_size - 1
-            chunk_length = file_size
-        
+        url = await get_file_url_from_bot(file_record.get("bot_token"), file_record["telegram_file_id"])
         headers = {
             "Content-Disposition": disposition,
-            "Content-Length": str(chunk_length),
-            "Content-Range": f"bytes {start}-{end}/{file_size}",
-            "Accept-Ranges": "bytes"
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "none",
         }
+        return StreamingResponse(stream_from_url(url), media_type=mime_type, headers=headers, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(exc))
+    finally:
+        try:
+            cursor.close()
+            connection.close()
+        except Exception:
+            pass
 
-        return StreamingResponse(
-            file_sender(start, chunk_length),
-            media_type=file_record['mime_type'] or 'application/octet-stream',
-            headers=headers,
-            status_code=status_code
-        )
-
-    except Exception as e:
-        error_msg = traceback.format_exc()
-        print(f"ERROR: Download failed:\n{error_msg}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health():
-    return {"status": "online", "client_connected": client.is_connected()}
+    return {"status": "online", "engine": "python-bot-api"}
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8002)

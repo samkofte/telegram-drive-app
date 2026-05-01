@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, Share, TextInput } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, Share, TextInput, Alert } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/services/api';
@@ -18,6 +18,11 @@ function formatBytes(bytes: number) {
 
 function getDisplayName(file: any) {
   return file?.display_name || file?.filename || '';
+}
+
+function buildShareMessage(file: any, shareUrl: string) {
+  const fileName = getDisplayName(file) || 'Dosya';
+  return `Bu dosyayi indir:\n${fileName}\n${shareUrl}`;
 }
 
 export default function Dashboard() {
@@ -89,6 +94,21 @@ export default function Dashboard() {
   );
 
   const handleRecentFileAction = useCallback(async (file: any, action: 'favorite' | 'trash' | 'share') => {
+    if (action === 'trash') {
+      Alert.alert(
+        'Dosyayi sil',
+        `"${getDisplayName(file)}" dosyasini cop kutusuna tasimak istiyor musun?`,
+        [
+          { text: 'Hayir', style: 'cancel' },
+          { text: 'Evet', style: 'destructive', onPress: () => void handleRecentFileActionConfirmed(file, action) },
+        ]
+      );
+      return;
+    }
+    await handleRecentFileActionConfirmed(file, action);
+  }, []);
+
+  const handleRecentFileActionConfirmed = useCallback(async (file: any, action: 'favorite' | 'trash' | 'share') => {
     setBusyFileId(file.id);
     try {
       if (action === 'favorite') {
@@ -108,7 +128,7 @@ export default function Dashboard() {
           throw new Error('Share link unavailable');
         }
         await Share.share({
-          message: `${file.filename}\n${shareUrl}`,
+          message: buildShareMessage(file, shareUrl),
           url: shareUrl,
         });
       }
