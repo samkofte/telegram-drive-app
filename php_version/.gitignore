@@ -1,0 +1,13 @@
+vendor/
+node_modules/
+.env
+*.session
+*.session-journal
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+tmp/
+uploads/
+local_php.ini
+*.bat

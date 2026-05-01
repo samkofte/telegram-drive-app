@@ -1,0 +1,18 @@
+# IDE / tooling
+.trae/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets
+python_version/config/.env
+
+# Local databases / logs
+*.db
+php_version/public/MadelineProto.log

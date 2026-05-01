@@ -1,0 +1,3 @@
+Bu bir test dosyasıdır.
+Telegram dosya yönetim sistemi için test amaçlı oluşturulmuştur.
+İndirme ve silme işlemlerini test etmek için kullanılacaktır.

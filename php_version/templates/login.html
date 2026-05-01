@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap - Telegram Drive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+        }
+
+        .auth-logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .auth-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            font-size: 1rem;
+        }
+
+        .auth-footer {
+            margin-top: 2rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: none;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .loading-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0, 0, 0, 0.05);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-card glass-pane animate-fade">
+        <div class="auth-logo">💠</div>
+        <h1 class="auth-title">Hoş Geldiniz</h1>
+        <p class="auth-subtitle">Dosyalarınızı yönetmek için giriş yapın</p>
+
+        <div class="error-box" id="errorMessage"></div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label class="input-label" for="email">E-posta Adresi</label>
+                <input type="email" id="email" placeholder="ornek@mail.com" required>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" for="password">Şifre</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem;" id="loginBtn">
+                Giriş Yap
+            </button>
+        </form>
+
+        <div class="loading-overlay" id="loading">
+            <div class="spinner"></div>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Giriş yapılıyor...</p>
+        </div>
+
+        <div class="auth-footer">
+            Hesabınız yok mu? <a href="/register">Hemen Kayıt Olun</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+
+            errorMessage.style.display = 'none';
+            loginBtn.style.display = 'none';
+            loading.style.display = 'flex';
+
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('access_token', data.access_token);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Hoş Geldiniz!',
+                        text: 'Başarıyla giriş yapıldı.',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff'
+                    }).then(() => {
+                        window.location.href = '/';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Giriş Başarısız',
+                        text: data.error || 'E-posta veya şifre hatalı.',
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff'
+                    });
+                    loginBtn.style.display = 'block';
+                    loading.style.display = 'none';
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Bağlantı Hatası',
+                    text: 'Sunucuya bağlanılamadı.',
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    color: '#fff'
+                });
+                loginBtn.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>

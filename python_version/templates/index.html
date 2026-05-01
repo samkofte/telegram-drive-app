@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Drive - Ana Sayfa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-section h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-progress {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .files-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .files-header h2 {
+            color: #333;
+        }
+
+        .refresh-btn {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .file-card {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+
+        .file-info {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">📁 Telegram Drive</div>
+        <div class="user-info">
+            <span class="user-email" id="userEmail">Yükleniyor...</span>
+            <button class="logout-btn" onclick="logout()">Çıkış</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="upload-section">
+            <h2>📤 Dosya Yükle</h2>
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Dosya seçmek için tıklayın veya sürükleyip bırakın</div>
+                <div class="upload-subtext">Maksimum dosya boyutu: 100MB</div>
+                <input type="file" id="fileInput" class="file-input" onchange="uploadFile()">
+            </div>
+            <div class="upload-progress" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText">Yükleniyor...</div>
+            </div>
+        </div>
+
+        <div class="files-section">
+            <div class="files-header">
+                <h2>📋 Dosyalarım</h2>
+                <button class="refresh-btn" onclick="loadFiles()">🔄 Yenile</button>
+            </div>
+            <div id="filesContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Dosyalar yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            setupDragAndDrop();
+        });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    document.getElementById('userEmail').textContent = currentUser.email;
+                    loadFiles();
+                } else {
+                    localStorage.removeItem('access_token');
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('access_token');
+                window.location.href = '/login';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        }
+
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('fileInput').files = files;
+                    uploadFile();
+                }
+            });
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+
+            const token = localStorage.getItem('access_token');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            uploadProgress.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Yükleniyor...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressFill.style.width = percentComplete + '%';
+                        progressText.textContent = `Yükleniyor... ${Math.round(percentComplete)}%`;
+                    }
+                });
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        showMessage('Dosya başarıyla yüklendi!', 'success');
+                        fileInput.value = '';
+                        loadFiles();
+                    } else {
+                        const error = JSON.parse(xhr.responseText);
+                        showMessage(error.detail || 'Yükleme başarısız!', 'error');
+                    }
+                    uploadProgress.style.display = 'none';
+                };
+
+                xhr.onerror = function() {
+                    showMessage('Yükleme sırasında bir hata oluştu!', 'error');
+                    uploadProgress.style.display = 'none';
+                };
+
+                xhr.open('POST', '/upload');
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.send(formData);
+
+            } catch (error) {
+                showMessage('Yükleme sırasında bir hata oluştu!', 'error');
+                uploadProgress.style.display = 'none';
+            }
+        }
+
+        async function loadFiles() {
+            const token = localStorage.getItem('access_token');
+            const filesContainer = document.getElementById('filesContainer');
+
+            filesContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Dosyalar yükleniyor...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/files', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const files = await response.json();
+                    displayFiles(files);
+                } else {
+                    showMessage('Dosyalar yüklenirken hata oluştu!', 'error');
+                }
+            } catch (error) {
+                showMessage('Dosyalar yüklenirken hata oluştu!', 'error');
+            }
+        }
+
+        function displayFiles(files) {
+            const filesContainer = document.getElementById('filesContainer');
+
+            if (files.length === 0) {
+                filesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📂</div>
+                        <div>Henüz dosya yüklenmemiş</div>
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">İlk dosyanızı yüklemek için yukarıdaki alanı kullanın</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const filesGrid = document.createElement('div');
+            filesGrid.className = 'files-grid';
+
+            files.forEach(file => {
+                const fileCard = document.createElement('div');
+                fileCard.className = 'file-card';
+                
+                const fileIcon = getFileIcon(file.mime_type);
+                const fileSize = formatFileSize(file.file_size);
+                const uploadDate = new Date(file.upload_date).toLocaleDateString('tr-TR');
+
+                fileCard.innerHTML = `
+                    <div class="file-icon">${fileIcon}</div>
+                    <div class="file-name">${file.filename}</div>
+                    <div class="file-info">
+                        <div>Boyut: ${fileSize}</div>
+                        <div>Tarih: ${uploadDate}</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="btn btn-primary" onclick="downloadFile('${file.file_id}')">📥 İndir</button>
+                        <button class="btn btn-danger" onclick="deleteFile('${file.file_id}')">🗑️ Sil</button>
+                    </div>
+                `;
+
+                filesGrid.appendChild(fileCard);
+            });
+
+            filesContainer.innerHTML = '';
+            filesContainer.appendChild(filesGrid);
+        }
+
+        function getFileIcon(mimeType) {
+            if (!mimeType) return '📄';
+            
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType.startsWith('video/')) return '🎥';
+            if (mimeType.startsWith('audio/')) return '🎵';
+            if (mimeType.includes('pdf')) return '📕';
+            if (mimeType.includes('word')) return '📘';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📗';
+            if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📙';
+            if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return '📦';
+            
+            return '📄';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function downloadFile(fileId) {
+            const token = localStorage.getItem('access_token');
+            window.open(`/download/${fileId}?token=${token}`, '_blank');
+        }
+
+        async function deleteFile(fileId) {
+            if (!confirm('Bu dosyayı silmek istediğinizden emin misiniz?')) {
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+
+            try {
+                const response = await fetch(`/files/${fileId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    showMessage('Dosya başarıyla silindi!', 'success');
+                    loadFiles();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.detail || 'Dosya silinirken hata oluştu!', 'error');
+                }
+            } catch (error) {
+                showMessage('Dosya silinirken hata oluştu!', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            // Hide both messages first
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            if (type === 'error') {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            } else {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+            }
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

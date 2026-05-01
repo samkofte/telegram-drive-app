@@ -1,0 +1,7 @@
+telethon
+fastapi
+uvicorn
+python-multipart
+mysql-connector-python
+python-dotenv
+aiohttp

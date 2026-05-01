@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil & Yönetim - Telegram Drive</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Profile Header Elite */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+            margin-bottom: 3rem;
+            padding: 3rem;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3.5rem;
+            font-weight: 800;
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.3);
+            border: 4px solid white;
+        }
+
+        .profile-info h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 0.25rem;
+        }
+
+        .profile-info p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .role-admin {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .role-user {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--secondary);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            padding: 2rem;
+            transition: 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        /* Modern Tabs */
+        .view-tabs {
+            display: inline-flex;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 0.5rem;
+            border-radius: 100px;
+            margin-bottom: 2.5rem;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.75rem;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.3s;
+            color: var(--text-muted);
+            border: none;
+            background: transparent;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Admin Specific */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-tab {
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+        }
+
+        .admin-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        @media (max-width: 1024px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="window.location.href='/'">💠 Telegram Drive</div>
+        <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-outline" onclick="window.location.href='/'">🏠 Ana Sayfa</button>
+            <button class="btn btn-primary" onclick="logout()">Güvenli Çıkış</button>
+        </div>
+    </nav>
+
+    <div class="container animate-fade">
+        <div class="profile-header glass-pane">
+            <div class="profile-avatar" id="avatarLetter">U</div>
+            <div class="profile-info">
+                <h1 id="fullName">Hesap Sahibi</h1>
+                <p id="profileEmail">email@example.com</p>
+                <div id="roleBadge" class="role-badge">Yükleniyor...</div>
+            </div>
+        </div>
+
+        <div class="view-tabs">
+            <button class="tab-btn active" id="personalTab" onclick="switchView('personal')">Kişisel Profil</button>
+            <button class="tab-btn" id="adminTab" onclick="switchView('admin')" style="display: none;">Yönetici
+                Paneli</button>
+            <button class="tab-btn" id="apiTab" onclick="switchView('api')" style="display: none;">API Erişimi</button>
+        </div>
+
+        <!-- Personal View -->
+        <div id="personalView" class="view-content animate-fade">
+            <div class="stats-grid">
+                <div class="stat-card glass-pane">
+                    <div class="label">Dosyalarım</div>
+                    <div class="value" id="myFilesCount">0</div>
+                </div>
+                <div class="stat-card glass-pane">
+                    <div class="label">Toplam İndirmelerim</div>
+                    <div class="value" id="myDownloadCount">0</div>
+                </div>
+                <div class="stat-card glass-pane">
+                    <div class="label">Üyelik Tarihi</div>
+                    <div class="value" id="joinDate" style="font-size: 1.5rem; padding-top: 0.75rem;">-</div>
+                </div>
+            </div>
+
+            <div class="glass-pane" style="padding: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2 style="font-weight: 800;">Dosyalarım</h2>
+                    <div style="position: relative;">
+                        <input type="text" placeholder="Dosya ara..." class="btn-outline"
+                            style="padding: 0.6rem 1rem 0.6rem 2.5rem; border-radius: 100px; width: 250px;"
+                            onkeyup="filterTable('myFilesBody', this.value)">
+                        <span
+                            style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Dosya</th>
+                                <th>Boyut</th>
+                                <th>İndirme</th>
+                                <th>Tarih</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myFilesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- API View -->
+        <div id="apiView" class="view-content animate-fade" style="display: none;">
+            <div class="glass-pane" style="padding: 2rem; margin-bottom: 2rem;">
+                <h2 style="font-weight: 800; margin-bottom: 1rem;">API Anahtarları</h2>
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <input type="text" id="newKeyName" placeholder="Anahtar Adı (Örn: Mobil Uygulama)"
+                        class="btn-outline" style="border-radius: 8px; flex: 1;">
+                    <button class="btn btn-primary" onclick="createApiKey()">➕ Anahtar Oluştur</button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Anahtar Adı</th>
+                                <th>API Key</th>
+                                <th>Oluşturulma</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apiKeysBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass-pane" style="padding: 2rem;">
+                <h3 style="font-weight: 800; margin-bottom: 1rem;">Dokümantasyon</h3>
+                <p style="margin-bottom: 1rem;">API entegrasyonu için aşağıdaki bağlantıları kullanabilirsiniz.</p>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/api/documentation.md" target="_blank" class="btn btn-outline">📄 Dokümantasyonu Oku</a>
+                    <a href="/api/tester.html" target="_blank" class="btn btn-outline">🛠️ API Tester</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="adminView" class="view-content animate-fade" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card glass-pane">
+                    <div class="label">Kullanıcılar</div>
+                    <div class="value" id="adminTotalUsers">-</div>
+                </div>
+                <div class="stat-card glass-pane">
+                    <div class="label">Tüm Dosyalar</div>
+                    <div class="value" id="adminTotalFiles">-</div>
+                </div>
+                <div class="stat-card glass-pane">
+                    <div class="label">İndirme Trafiği</div>
+                    <div class="value" id="adminTotalHits">-</div>
+                </div>
+            </div>
+
+            <div class="admin-grid">
+                <div class="glass-pane" style="padding: 2rem;">
+                    <div class="admin-tabs">
+                        <div class="admin-tab active" onclick="switchAdminTab(this, 'adminUsers')">Kullanıcılar</div>
+                        <div class="admin-tab" onclick="switchAdminTab(this, 'adminFiles')">Tüm Dosyalar</div>
+                        <div class="admin-tab" onclick="switchAdminTab(this, 'adminLogs')">İndirme Kayıtları</div>
+                    </div>
+
+                    <div id="adminUsers" class="admin-tab-content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Kullanıcı</th>
+                                        <th>Rol</th>
+                                        <th>Durum</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminUsersBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="adminFiles" class="admin-tab-content" style="display: none;">
+                        <div style="position: relative; margin-bottom: 1.5rem;">
+                            <input type="text" placeholder="Sistem genelinde dosya ara..." class="btn-outline"
+                                style="width: 100%; border-radius: 12px; padding: 0.8rem 1rem 0.8rem 2.5rem;"
+                                onkeyup="filterTable('adminFilesBody', this.value)">
+                            <span
+                                style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Dosya</th>
+                                        <th>Yükleyen</th>
+                                        <th>İndirme</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminFilesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="adminLogs" class="admin-tab-content" style="display: none;">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Dosya</th>
+                                        <th>IP Adresi</th>
+                                        <th>Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminLogsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-pane" style="padding: 2rem;">
+                    <h3 style="font-weight: 800; margin-bottom: 2rem;">Sistem İstatistiği</h3>
+                    <div style="height: 320px;"><canvas id="adminChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('access_token');
+        let adminChart = null;
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!token) return logout();
+            await loadProfile();
+        });
+
+        async function loadProfile() {
+            try {
+                const res = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+                currentUser = await res.json();
+
+                const displayName = currentUser.username || (currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}` : 'Kullanıcı Hesabı');
+                document.getElementById('fullName').textContent = displayName;
+
+                document.getElementById('profileEmail').textContent = currentUser.email;
+                document.getElementById('avatarLetter').textContent = currentUser.email[0].toUpperCase();
+
+                const roleBadge = document.getElementById('roleBadge');
+                roleBadge.textContent = currentUser.role === 'admin' ? '⚜️ Yönetici' : '👤 Standart Üye';
+                roleBadge.className = 'role-badge ' + (currentUser.role === 'admin' ? 'role-admin' : 'role-user');
+
+                document.getElementById('myFilesCount').textContent = currentUser.stats.file_count;
+                document.getElementById('myDownloadCount').textContent = currentUser.stats.download_count;
+                document.getElementById('joinDate').textContent = new Date(currentUser.created_at).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                if (currentUser.role === 'admin') {
+                    document.getElementById('adminTab').style.display = 'block';
+                    document.getElementById('apiTab').style.display = 'block';
+                }
+
+                await loadMyFiles();
+            } catch (e) { logout(); }
+        }
+
+        async function loadMyFiles() {
+            const res = await fetch('/files', { headers: { 'Authorization': `Bearer ${token}` } });
+            const files = await res.json();
+            const body = document.getElementById('myFilesBody');
+            body.innerHTML = files.map(f => {
+                const isVideo = f.mime_type.includes('video') || ['.mp4', '.webm', '.mkv', '.avi', '.mov'].some(ext => f.filename.toLowerCase().endsWith(ext));
+                const watchBtn = isVideo ? `<button class="btn btn-outline" style="padding: 0.5rem;" onclick="window.location.href='/?watch=${f.file_id}'">👁️</button>` : '';
+
+                return `
+                <tr>
+                    <td><div style="font-weight: 700; max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${f.filename}</div><small style="opacity: 0.5;">ID: ${f.file_id.substring(0, 8)}</small></td>
+                    <td><span class="badge badge-primary">${(f.file_size / 1024 / 1024).toFixed(2)} MB</span></td>
+                    <td><div style="font-weight: 800; display:flex; align-items:center; gap:0.3rem;">📥 ${f.download_count || 0}</div></td>
+                    <td><div style="font-size: 0.85rem;">${new Date(f.upload_date).toLocaleDateString()}</div></td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+                            ${watchBtn}
+                            <button class="btn btn-outline" style="padding: 0.5rem;" onclick="downloadFile('${f.file_id}')">📥</button>
+                            <button class="btn btn-danger" style="padding: 0.5rem;" onclick="deleteMyFile('${f.file_id}')">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        async function deleteMyFile(id) {
+            const result = await Swal.fire({
+                title: 'Dosyayı sil?',
+                text: "Bu işlem geri alınamaz!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#6366f1',
+                cancelButtonColor: '#f43f5e',
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'İptal',
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff'
+            });
+
+            if (result.isConfirmed) {
+                const res = await fetch(`/files/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Silindi!', timer: 1500, showConfirmButton: false, background: 'rgba(30, 41, 59, 0.95)', color: '#fff' });
+                    loadProfile();
+                    loadMyFiles();
+                }
+            }
+        }
+
+        function switchView(view) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view-content').forEach(c => c.style.display = 'none');
+
+            if (view === 'personal') {
+                document.getElementById('personalTab').classList.add('active');
+                document.getElementById('personalView').style.display = 'block';
+            } else if (view === 'admin') {
+                document.getElementById('adminTab').classList.add('active');
+                document.getElementById('adminView').style.display = 'block';
+                loadAdminData();
+            } else if (view === 'api') {
+                document.getElementById('apiTab').classList.add('active');
+                document.getElementById('apiView').style.display = 'block';
+                loadApiKeys();
+            }
+        }
+
+        async function createApiKey() {
+            const name = document.getElementById('newKeyName').value;
+            if (!name) return Swal.fire('Hata', 'Lütfen bir isim girin', 'error');
+
+            const res = await fetch('/api-keys', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                Swal.fire({
+                    title: 'Anahtar Oluşturuldu',
+                    html: `Lütfen bu anahtarı kaydedin, tekrar gösterilmeyecek:<br><b>${data.key}</b>`,
+                    icon: 'success'
+                });
+                loadApiKeys();
+                document.getElementById('newKeyName').value = '';
+            }
+        }
+
+        async function loadApiKeys() {
+            const res = await fetch('/api-keys', { headers: { 'Authorization': `Bearer ${token}` } });
+            const keys = await res.json();
+            document.getElementById('apiKeysBody').innerHTML = keys.map(k => `
+                <tr>
+                    <td>${k.key_name}</td>
+                    <td>
+                        <div class="api-key-container" onclick="copyToClipboard('${k.api_key}')" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;" title="Kopyalamak için tıklayın">
+                            <code style="background:rgba(0,0,0,0.1); padding:0.2rem 0.5rem; border-radius:4px;">${k.api_key.substring(0, 10)}...</code>
+                            <span style="font-size: 0.8rem; opacity: 0.7;">📋</span>
+                        </div>
+                    </td>
+                    <td>${new Date(k.created_at).toLocaleDateString()}</td>
+                    <td><button class="btn btn-danger" style="padding:0.4rem;" onclick="deleteApiKey(${k.id})">🗑️</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'API Anahtarı Kopyalandı',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    color: '#fff'
+                });
+            }).catch(err => {
+                console.error('Kopyalama hatası:', err);
+                Swal.fire('Hata', 'Kopyalama başarısız oldu', 'error');
+            });
+        }
+
+        async function deleteApiKey(id) {
+            if (!confirm('Bu anahtarı silmek istediğinize emin misiniz?')) return;
+            await fetch(`/api-keys/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            loadApiKeys();
+        }
+
+        async function loadAdminData() {
+            const resStats = await fetch('/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } });
+            const stats = await resStats.json();
+            document.getElementById('adminTotalUsers').textContent = stats.total_users;
+            document.getElementById('adminTotalFiles').textContent = stats.total_files;
+            document.getElementById('adminTotalHits').textContent = stats.total_downloads;
+
+            updateAdminChart(stats);
+            loadAdminUsers();
+            loadAdminFiles();
+            loadAdminLogs();
+        }
+
+        function updateAdminChart(data) {
+            const ctx = document.getElementById('adminChart').getContext('2d');
+            if (adminChart) adminChart.destroy();
+            adminChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Kullanıcılar', 'Dosyalar', 'Hits'],
+                    datasets: [{
+                        data: [data.total_users, data.total_files, data.total_downloads],
+                        backgroundColor: ['#6366f1', '#a855f7', '#10b981'],
+                        borderWidth: 0,
+                        cutout: '75%'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        async function loadAdminUsers() {
+            const res = await fetch('/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+            const users = await res.json();
+            document.getElementById('adminUsersBody').innerHTML = users.map(u => {
+                const uName = u.username || (u.first_name ? `${u.first_name} ${u.last_name || ''}` : u.email);
+                return `
+                <tr>
+                    <td>
+                        <div style="font-weight: 700;">${uName}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">${u.email}</div>
+                    </td>
+                    <td><span class="badge ${u.role === 'admin' ? 'badge-primary' : 'badge-outline'}">${u.role.toUpperCase()}</span></td>
+                    <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}">${u.is_active ? 'AKTİF' : 'PASİF'}</span></td>
+                    <td><div style="display:flex; gap:0.4rem;">
+                        <button class="btn btn-outline" style="padding: 0.4rem 0.6rem;" onclick="adminUpdateRole(${u.id}, '${u.role === 'admin' ? 'user' : 'admin'}')">⚡ Yetki</button>
+                        <button class="btn btn-danger" style="padding: 0.4rem;" onclick="adminDeleteUser(${u.id})">🗑️</button>
+                    </div></td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadAdminFiles() {
+            const res = await fetch('/admin/files', { headers: { 'Authorization': `Bearer ${token}` } });
+            const files = await res.json();
+            document.getElementById('adminFilesBody').innerHTML = files.map(f => `
+                <tr>
+                    <td><div style="max-width:220px; font-weight:700; overflow:hidden; text-overflow:ellipsis;">${f.filename}</div></td>
+                    <td><small style="color:var(--text-muted);">${f.uploader}</small></td>
+                    <td><span style="font-weight:800;">📥 ${f.download_count}</span></td>
+                    <td><button class="btn btn-danger" style="padding: 0.4rem;" onclick="adminDeleteFile('${f.file_id}')">🗑️ Sil</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadAdminLogs() {
+            const res = await fetch('/admin/logs', { headers: { 'Authorization': `Bearer ${token}` } });
+            const logs = await res.json();
+            document.getElementById('adminLogsBody').innerHTML = logs.map(l => `
+                <tr>
+                    <td><small style="font-weight:700;">${l.file_name}</small></td>
+                    <td><span style="font-family:monospace; font-size:0.8rem;">${l.ip_address}</span></td>
+                    <td><small>${new Date(l.download_time).toLocaleTimeString()}</small></td>
+                </tr>
+            `).join('');
+        }
+
+        async function adminUpdateRole(id, role) {
+            await fetch(`/admin/users/${id}/role`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
+            loadAdminUsers();
+        }
+
+        async function adminDeleteUser(id) {
+            const result = await Swal.fire({
+                title: 'Kullanıcıyı sil?',
+                text: "Kullanıcıya ait tüm veriler silinebilir.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f43f5e',
+                confirmButtonText: 'Evet, sil!',
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff'
+            });
+            if (!result.isConfirmed) return;
+            await fetch(`/admin/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            loadAdminUsers();
+        }
+
+        async function adminDeleteFile(id) {
+            const result = await Swal.fire({
+                title: 'Dosyayı sistemden sil?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f43f5e',
+                confirmButtonText: 'Evet, sil!',
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff'
+            });
+            if (!result.isConfirmed) return;
+            await fetch(`/admin/files/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            loadAdminFiles();
+        }
+
+        function switchAdminTab(el, targetId) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.style.display = 'none');
+            el.classList.add('active');
+            document.getElementById(targetId).style.display = 'block';
+        }
+
+        function filterTable(bodyId, query) {
+            const q = query.toLowerCase();
+            const rows = document.getElementById(bodyId).getElementsByTagName('tr');
+            for (let row of rows) row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+        }
+
+        function downloadFile(id) {
+            const token = localStorage.getItem('access_token');
+            window.open(`/download/${id}?token=${token}`, '_blank');
+        }
+
+        function logout() { localStorage.removeItem('access_token'); window.location.href = '/login'; }
+    </script>
+</body>
+
+</html>

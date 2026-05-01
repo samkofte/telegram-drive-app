@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Oynatıcı</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        .video-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .video-player {
+            width: 100%;
+            max-width: 1200px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .controls {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .file-info {
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+        
+        .debug-info {
+            background: rgba(255,0,0,0.1);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 0.8em;
+            color: #ff6b6b;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.2em;
+            }
+            
+            .video-container {
+                padding: 10px;
+            }
+            
+            .btn {
+                margin: 5px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎥 <span id="filename">Video</span></h1>
+        <p>Video streaming - İndirmeden izle</p>
+    </div>
+    
+    <div class="video-container">
+        <div class="video-player">
+            <video controls autoplay preload="metadata" style="width: 100%;">
+                <source id="videoSource" src="" type="">
+                Tarayıcınız video oynatmayı desteklemiyor.
+            </video>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <a href="/" class="btn btn-secondary">← Ana Sayfaya Dön</a>
+        <a id="downloadLink" href="" class="btn btn-primary" target="_blank">📥 İndir</a>
+        
+        <div class="debug-info" id="debugInfo">
+            <!-- Debug info will be populated by JavaScript -->
+        </div>
+        
+        <div class="file-info" id="fileInfo">
+            <!-- File info will be populated by JavaScript -->
+        </div>
+    </div>
+    
+    <script>
+        // Get file ID from URL path
+        const pathParts = window.location.pathname.split('/');
+        const fileId = pathParts[pathParts.length - 1];
+        
+        console.log('File ID from URL:', fileId);
+        
+        if (!fileId || fileId === 'player') {
+            alert('Video ID bulunamadı!');
+            window.location.href = '/';
+        }
+        
+        // Load file info and set video source
+        async function loadFileInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.innerHTML = 'Yükleniyor...';
+            
+            try {
+                console.log('Loading file info for fileId:', fileId);
+                
+                // First, get file info
+                const response = await fetch('/files');
+                const files = await response.json();
+                console.log('Files loaded:', files);
+                
+                const file = files.find(f => f.file_id === fileId);
+                console.log('Found file:', file);
+                
+                if (!file) {
+                    throw new Error('Dosya bulunamadı');
+                }
+                
+                document.getElementById('filename').textContent = file.filename;
+                
+                // Get Telegram file URL directly
+                console.log('Getting Telegram file info for:', fileId);
+                const telegramResponse = await fetch(`/telegram-url/${fileId}`);
+                const telegramData = await telegramResponse.json();
+                
+                console.log('Telegram response:', telegramData);
+                
+                if (!telegramData.success) {
+                    throw new Error(telegramData.message || 'Telegram URL alınamadı');
+                }
+                
+                const videoUrl = telegramData.download_url;
+                console.log('Final video URL:', videoUrl);
+                
+                // Set video source
+                const videoSource = document.getElementById('videoSource');
+                videoSource.src = videoUrl;
+                videoSource.type = file.mime_type;
+                
+                // Set download link
+                const downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = `/download/${fileId}`;
+                
+                // Update debug info
+                debugInfo.innerHTML = `
+                    <strong>Debug Bilgileri:</strong><br>
+                    File ID: ${fileId}<br>
+                    Telegram URL: ${videoUrl}<br>
+                    Response Success: ${telegramData.success}<br>
+                    File Size: ${formatFileSize(file.file_size)}
+                `;
+                
+                // Update file info
+                const fileInfo = document.getElementById('fileInfo');
+                fileInfo.innerHTML = `
+                    <div><strong>Dosya Adı:</strong> ${file.filename}</div>
+                    <div><strong>Boyut:</strong> ${formatFileSize(file.file_size)}</div>
+                    <div><strong>Tür:</strong> ${file.mime_type}</div>
+                    <div><strong>Yükleme Tarihi:</strong> ${new Date(file.upload_date).toLocaleString('tr-TR')}</div>
+                `;
+                
+                // Force video to load
+                const video = document.querySelector('video');
+                video.load();
+                console.log('Video load() called');
+                
+                // Add error handling for video
+                video.addEventListener('error', function(e) {
+                    console.error('Video error:', e);
+                    debugInfo.innerHTML += '<br><strong>Video Error:</strong> ' + e.message;
+                });
+                
+                video.addEventListener('loadeddata', function() {
+                    console.log('Video data loaded successfully');
+                    debugInfo.innerHTML += '<br><strong>Video loaded successfully!</strong>';
+                });
+                
+            } catch (error) {
+                console.error('Error:', error);
+                debugInfo.innerHTML = `<strong>Hata:</strong> ${error.message}`;
+                alert('Video yüklenirken hata oluştu: ' + error.message);
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Video player enhancements
+        const video = document.querySelector('video');
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    if (video.paused) video.play();
+                    else video.pause();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    video.currentTime += 10;
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    video.currentTime -= 10;
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    video.volume = Math.min(1, video.volume + 0.1);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    video.volume = Math.max(0, video.volume - 0.1);
+                    break;
+            }
+        });
+        
+        // Auto-resume from last position (if available)
+        const lastPosition = localStorage.getItem(`video_position_${fileId}`);
+        if (lastPosition) {
+            video.currentTime = parseFloat(lastPosition);
+        }
+        
+        // Save position periodically
+        setInterval(() => {
+            if (!video.paused) {
+                localStorage.setItem(`video_position_${fileId}`, video.currentTime);
+            }
+        }, 5000);
+        
+        // Load file info on page load
+        loadFileInfo();
+    </script>
+</body>
+</html> 

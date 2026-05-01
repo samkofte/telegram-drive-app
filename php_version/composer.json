@@ -1,0 +1,17 @@
+{
+    "name": "samkofte/telegram-drive-api-php",
+    "description": "Telegram Drive API Bot PHP Version",
+    "type": "project",
+    "require": {
+        "slim/slim": "4.*",
+        "slim/psr7": "^1.6",
+        "vlucas/phpdotenv": "^5.5",
+        "firebase/php-jwt": "^6.8",
+        "guzzlehttp/guzzle": "^7.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}
