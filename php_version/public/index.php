@@ -2,6 +2,7 @@
 
 use App\Database;
 use App\Services\AuthService;
+use App\Services\ResendService;
 use App\Services\TelegramService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -63,6 +64,8 @@ if (empty($botTokens)) {
 }
 $authService = new AuthService($config['SECRET_KEY']);
 $telegramService = new TelegramService($botTokens);
+$resendApiKey = $_ENV['RESEND_API_KEY'] ?? '';
+$resendService = $resendApiKey !== '' ? new ResendService($resendApiKey) : null;
 $db = Database::getInstance();
 
 // Initialize Tables
@@ -138,6 +141,60 @@ function getBotUploadLimitBytes(): int
 {
     $configured = (int)($_ENV['TELEGRAM_BOT_UPLOAD_LIMIT'] ?? 0);
     return $configured > 0 ? $configured : 45 * 1024 * 1024;
+}
+
+function getPublicShareChunkSizeBytes(): int
+{
+    $configured = (int)($_ENV['PUBLIC_SHARE_CHUNK_SIZE'] ?? 0);
+    if ($configured > 0) {
+        return $configured;
+    }
+
+    return 8 * 1024 * 1024;
+}
+
+function getAdaptivePublicUploadPlan(int $fileSize): array
+{
+    $botLimit = getBotUploadLimitBytes();
+    $preferredFloor = max(1, min(getPublicShareChunkSizeBytes(), $botLimit));
+    $safeChunkCeiling = max(1, $botLimit - (512 * 1024));
+
+    if ($fileSize <= 0) {
+        return [
+            'is_chunked' => false,
+            'chunk_count' => 1,
+            'chunk_size_bytes' => $preferredFloor,
+        ];
+    }
+
+    if ($fileSize <= $botLimit) {
+        return [
+            'is_chunked' => false,
+            'chunk_count' => 1,
+            'chunk_size_bytes' => $fileSize,
+        ];
+    }
+
+    $partCount = max(2, (int)ceil($fileSize / $safeChunkCeiling));
+    $chunkSize = (int)ceil($fileSize / $partCount);
+    $chunkSize = max($preferredFloor, min($safeChunkCeiling, $chunkSize));
+    $partCount = (int)ceil($fileSize / $chunkSize);
+
+    return [
+        'is_chunked' => $partCount > 1,
+        'chunk_count' => max(1, $partCount),
+        'chunk_size_bytes' => $chunkSize,
+    ];
+}
+
+function getAllowedPublicShareDurations(): array
+{
+    return [
+        60 => '1 saat',
+        360 => '6 saat',
+        1440 => '24 saat',
+        10080 => '7 gun',
+    ];
 }
 
 function buildUploadCaption(array $user, string $originalName, ?int $fileId = null, ?string $extraLine = null): string
@@ -273,10 +330,12 @@ function openUploadReadStream($file)
     return $stream;
 }
 
-function createChunkUploadPayload($file, array $user, TelegramService $telegramService, array $config): array
+function createChunkUploadPayload($file, array $user, TelegramService $telegramService, array $config, array $options = []): array
 {
     $fileSize = (int)($file->getSize() ?? 0);
     $botLimit = getBotUploadLimitBytes();
+    $forceChunked = !empty($options['force_chunked']);
+    $preferredChunkSize = isset($options['chunk_size_bytes']) ? (int)$options['chunk_size_bytes'] : $botLimit;
     $mimeType = $file->getClientMediaType() ?? 'application/octet-stream';
     $originalName = normalizeUploadFilename($file->getClientFilename() ?: 'upload.bin', $mimeType);
     $storedDisplayName = buildStoredDisplayName($originalName);
@@ -288,7 +347,7 @@ function createChunkUploadPayload($file, array $user, TelegramService $telegramS
 
     $stream = openUploadReadStream($file);
 
-    if ($fileSize <= $botLimit) {
+    if (!$forceChunked && $fileSize <= $botLimit) {
         $result = $telegramService->sendDocument(
             $config['TELEGRAM_CHAT_ID'],
             is_resource($stream) ? $stream : $stream->getContents(),
@@ -328,13 +387,18 @@ function createChunkUploadPayload($file, array $user, TelegramService $telegramS
         throw new Exception('No Telegram bot tokens available for chunk upload');
     }
 
-    $partCount = (int)ceil($fileSize / $botLimit);
+    $effectiveChunkSize = max(1, min($botLimit, $preferredChunkSize));
+    if ($forceChunked && $fileSize > 1 && $effectiveChunkSize >= $fileSize) {
+        $effectiveChunkSize = max(1, (int)ceil($fileSize / 2));
+    }
+
+    $partCount = (int)ceil($fileSize / $effectiveChunkSize);
     $parts = [];
     $bytesRemaining = $fileSize;
 
     for ($index = 0; $index < $partCount; $index++) {
         $partNumber = $index + 1;
-        $currentPartSize = min($botLimit, $bytesRemaining);
+        $currentPartSize = min($effectiveChunkSize, $bytesRemaining);
         $tempPath = tempnam(sys_get_temp_dir(), 'tgchunk_');
         if ($tempPath === false) {
             throw new Exception('Chunk temp file could not be created');
@@ -424,7 +488,169 @@ function createChunkUploadPayload($file, array $user, TelegramService $telegramS
     ];
 }
 
-function persistUploadedFileRecord(PDO $db, array $payload, int $userId, $folderId): int
+function getPublicUploadStateDirectory(): string
+{
+    $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'telegram_public_uploads';
+    if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
+        throw new Exception('Public upload temp directory could not be created');
+    }
+
+    return $dir;
+}
+
+function getPublicUploadStatePath(string $uploadId): string
+{
+    if (!preg_match('/^[a-f0-9]{32}$/', $uploadId)) {
+        throw new Exception('Invalid upload id');
+    }
+
+    return getPublicUploadStateDirectory() . DIRECTORY_SEPARATOR . $uploadId . '.json';
+}
+
+function savePublicUploadState(string $uploadId, array $state): void
+{
+    $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($json === false) {
+        throw new Exception('Upload state could not be encoded');
+    }
+
+    if (file_put_contents(getPublicUploadStatePath($uploadId), $json, LOCK_EX) === false) {
+        throw new Exception('Upload state could not be written');
+    }
+}
+
+function loadPublicUploadState(string $uploadId): array
+{
+    $path = getPublicUploadStatePath($uploadId);
+    if (!is_file($path)) {
+        throw new Exception('Upload session could not be found');
+    }
+
+    $contents = file_get_contents($path);
+    if ($contents === false) {
+        throw new Exception('Upload state could not be read');
+    }
+
+    $decoded = json_decode($contents, true);
+    if (!is_array($decoded)) {
+        throw new Exception('Upload state is invalid');
+    }
+
+    return $decoded;
+}
+
+function deletePublicUploadState(string $uploadId): void
+{
+    $path = getPublicUploadStatePath($uploadId);
+    if (is_file($path)) {
+        @unlink($path);
+    }
+}
+
+function uploadPreparedChunk(
+    $file,
+    array $uploadState,
+    int $partIndex,
+    TelegramService $telegramService,
+    array $config
+): array {
+    $chunkSize = (int)($file->getSize() ?? 0);
+    if ($chunkSize <= 0) {
+        throw new Exception('Empty chunk cannot be uploaded');
+    }
+
+    $stream = openUploadReadStream($file);
+    $botTokens = $telegramService->getBotTokens();
+    if (empty($botTokens)) {
+        throw new Exception('No Telegram bot tokens available for chunk upload');
+    }
+
+    $partNumber = $partIndex + 1;
+    $partCount = max(1, (int)($uploadState['chunk_count'] ?? 1));
+    $token = $botTokens[$partIndex % count($botTokens)];
+    $displayName = (string)($uploadState['display_name'] ?? 'upload.bin');
+    $captionBase = buildUploadCaption($uploadState['user'] ?? [], $displayName);
+    $partCaption = $captionBase . "\n📦 Parça: {$partNumber}/{$partCount}";
+    $chunkFilename = buildChunkFilename($displayName, $partNumber, $partCount);
+
+    try {
+        $result = $telegramService->sendDocument(
+            $config['TELEGRAM_CHAT_ID'],
+            is_resource($stream) ? $stream : $stream,
+            $chunkFilename,
+            $partCaption,
+            $token
+        );
+    } finally {
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+    }
+
+    if (empty($result['ok'])) {
+        throw new Exception('Telegram chunk upload failed: ' . ($result['description'] ?? 'Unknown error'));
+    }
+
+    $media = extractTelegramMedia($result);
+    $usedToken = $result['used_token'] ?? $token;
+
+    return [
+        'part_index' => $partIndex,
+        'telegram_file_id' => $media['file_id'],
+        'telegram_message_id' => $media['message_id'],
+        'part_name' => $chunkFilename,
+        'part_size' => $chunkSize,
+        'mime_type' => $uploadState['mime_type'] ?? 'application/octet-stream',
+        'bot_token' => $usedToken,
+        'telegram_url' => null,
+    ];
+}
+
+function buildPublicUploadPayloadFromState(array $uploadState): array
+{
+    $parts = $uploadState['parts'] ?? [];
+    usort($parts, static fn(array $left, array $right): int => (int)$left['part_index'] <=> (int)$right['part_index']);
+
+    $isChunked = (int)($uploadState['chunk_count'] ?? count($parts)) > 1;
+    if (!$isChunked) {
+        $singlePart = $parts[0] ?? null;
+        if (!$singlePart) {
+            throw new Exception('Upload chunk metadata could not be found');
+        }
+
+        return [
+            'telegram_file_id' => $singlePart['telegram_file_id'],
+            'telegram_message_id' => $singlePart['telegram_message_id'] ?? null,
+            'file_name' => $uploadState['original_name'],
+            'display_name' => $uploadState['display_name'],
+            'file_size' => (int)$uploadState['file_size'],
+            'mime_type' => $uploadState['mime_type'],
+            'bot_token' => $singlePart['bot_token'] ?? null,
+            'telegram_url' => null,
+            'upload_engine' => 'php',
+            'is_chunked' => false,
+            'chunk_count' => 1,
+            'parts' => [],
+        ];
+    }
+
+    return [
+        'telegram_file_id' => buildChunkMasterFileId(),
+        'telegram_message_id' => null,
+        'file_name' => $uploadState['original_name'],
+        'display_name' => $uploadState['display_name'],
+        'file_size' => (int)$uploadState['file_size'],
+        'mime_type' => $uploadState['mime_type'],
+        'bot_token' => null,
+        'telegram_url' => null,
+        'upload_engine' => 'php',
+        'is_chunked' => true,
+        'chunk_count' => (int)$uploadState['chunk_count'],
+        'parts' => $parts,
+    ];
+}
+
+function persistUploadedFileRecord(PDO $db, array $payload, ?int $userId, $folderId): int
 {
     if ($folderId === 'root' || $folderId === '') {
         $folderId = null;
@@ -541,6 +767,30 @@ function permanentlyDeleteStoredFile(PDO $db, TelegramService $telegramService, 
 
     $deleteStmt = $db->prepare("DELETE FROM files WHERE id = ?");
     $deleteStmt->execute([$file['id']]);
+}
+
+function resolveSharedFileOrHandleExpiration(PDO $db, TelegramService $telegramService, array $config, string $shareToken): array
+{
+    $stmt = $db->prepare("SELECT * FROM files WHERE share_token = ? AND deleted_at IS NULL LIMIT 1");
+    $stmt->execute([$shareToken]);
+    $file = $stmt->fetch();
+
+    if (!$file) {
+        return ['status' => 'missing', 'file' => null];
+    }
+
+    $expiresAt = $file['share_expires_at'] ?? null;
+    if (!empty($expiresAt) && strtotime((string)$expiresAt) <= time()) {
+        if (!empty($file['is_public_upload'])) {
+            permanentlyDeleteStoredFile($db, $telegramService, $config, $file);
+        } else {
+            $db->prepare("UPDATE files SET share_token = NULL, share_expires_at = NULL WHERE id = ?")->execute([(int)$file['id']]);
+        }
+
+        return ['status' => 'expired', 'file' => $file];
+    }
+
+    return ['status' => 'active', 'file' => $file];
 }
 
 function getFolderDescendantIds(PDO $db, int $userId, int $folderId): array
@@ -1349,6 +1599,191 @@ $app->post('/upload', function (Request $request, Response $response) use ($db, 
     }
 })->add($authMiddleware);
 
+$app->post('/dosya/upload/start', function (Request $request, Response $response) {
+    $parsedBody = $request->getParsedBody() ?? [];
+    $originalName = normalizeUploadFilename((string)($parsedBody['file_name'] ?? 'upload.bin'), (string)($parsedBody['mime_type'] ?? 'application/octet-stream'));
+    $fileSize = (int)($parsedBody['file_size'] ?? 0);
+    $expiresInMinutes = (int)($parsedBody['expires_in_minutes'] ?? 1440);
+    $notifyEmail = trim((string)($parsedBody['notify_email'] ?? ''));
+    $allowedDurations = getAllowedPublicShareDurations();
+
+    if ($fileSize <= 0) {
+        $response->getBody()->write(json_encode(['error' => 'Gecersiz dosya bilgisi']));
+        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+    }
+
+    if (!array_key_exists($expiresInMinutes, $allowedDurations)) {
+        $response->getBody()->write(json_encode(['error' => 'Gecersiz link suresi']));
+        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+    }
+
+    if ($notifyEmail !== '' && !filter_var($notifyEmail, FILTER_VALIDATE_EMAIL)) {
+        $response->getBody()->write(json_encode(['error' => 'Gecersiz e-posta adresi']));
+        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+    }
+
+    $uploadId = bin2hex(random_bytes(16));
+    $anonymousUser = [
+        'first_name' => 'Public',
+        'last_name' => 'Upload',
+        'username' => 'public-share',
+        'email' => $notifyEmail !== '' ? $notifyEmail : 'public@telegram-drive.local',
+    ];
+    $uploadPlan = getAdaptivePublicUploadPlan($fileSize);
+
+    $state = [
+        'upload_id' => $uploadId,
+        'created_at' => gmdate('c'),
+        'original_name' => $originalName,
+        'display_name' => buildStoredDisplayName($originalName),
+        'mime_type' => (string)($parsedBody['mime_type'] ?? 'application/octet-stream'),
+        'file_size' => $fileSize,
+        'chunk_size_bytes' => (int)$uploadPlan['chunk_size_bytes'],
+        'chunk_count' => (int)$uploadPlan['chunk_count'],
+        'is_chunked' => !empty($uploadPlan['is_chunked']),
+        'expires_in_minutes' => $expiresInMinutes,
+        'notify_email' => $notifyEmail,
+        'user' => $anonymousUser,
+        'parts' => [],
+    ];
+
+    try {
+        savePublicUploadState($uploadId, $state);
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'upload_id' => $uploadId,
+            'display_name' => $state['display_name'],
+            'is_chunked' => !empty($state['is_chunked']),
+            'chunk_count' => (int)$state['chunk_count'],
+            'chunk_size_bytes' => $state['chunk_size_bytes'],
+            'telegram_bot_limit_bytes' => getBotUploadLimitBytes(),
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    } catch (Exception $e) {
+        $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+});
+
+$app->post('/dosya/upload/chunk', function (Request $request, Response $response) use ($telegramService, $config) {
+    $parsedBody = $request->getParsedBody() ?? [];
+    $uploadedFiles = $request->getUploadedFiles();
+    $uploadId = (string)($parsedBody['upload_id'] ?? '');
+    $partIndex = (int)($parsedBody['part_index'] ?? -1);
+
+    if ($uploadId === '' || $partIndex < 0) {
+        $response->getBody()->write(json_encode(['error' => 'Eksik chunk bilgisi']));
+        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+    }
+
+    if (empty($uploadedFiles['chunk'])) {
+        $response->getBody()->write(json_encode(['error' => 'Chunk dosyasi bulunamadi']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+
+    $chunk = $uploadedFiles['chunk'];
+    if ($chunk->getError() !== UPLOAD_ERR_OK) {
+        $response->getBody()->write(json_encode(['error' => 'Chunk upload hatasi']));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+
+    try {
+        $state = loadPublicUploadState($uploadId);
+        $partCount = (int)($state['chunk_count'] ?? 0);
+        if ($partIndex >= $partCount) {
+            throw new Exception('Chunk index aralik disinda');
+        }
+
+        foreach ($state['parts'] as $existingPart) {
+            if ((int)($existingPart['part_index'] ?? -1) === $partIndex) {
+                throw new Exception('Bu chunk zaten yuklendi');
+            }
+        }
+
+        $partPayload = uploadPreparedChunk($chunk, $state, $partIndex, $telegramService, $config);
+        $state['parts'][] = $partPayload;
+        savePublicUploadState($uploadId, $state);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'upload_id' => $uploadId,
+            'uploaded_parts' => count($state['parts']),
+            'chunk_count' => $partCount,
+            'part_index' => $partIndex,
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    } catch (Exception $e) {
+        $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+});
+
+$app->post('/dosya/upload/complete', function (Request $request, Response $response) use ($db, $telegramService, $resendService, $config) {
+    $parsedBody = $request->getParsedBody() ?? [];
+    $uploadId = (string)($parsedBody['upload_id'] ?? '');
+
+    if ($uploadId === '') {
+        $response->getBody()->write(json_encode(['error' => 'Upload id gerekli']));
+        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+    }
+
+    try {
+        $state = loadPublicUploadState($uploadId);
+        $uploadedPartCount = count($state['parts'] ?? []);
+        $expectedPartCount = (int)($state['chunk_count'] ?? 0);
+        if ($expectedPartCount <= 0 || $uploadedPartCount !== $expectedPartCount) {
+            throw new Exception('Tum chunklar yuklenmeden islem tamamlanamaz');
+        }
+
+        $payload = buildPublicUploadPayloadFromState($state);
+        $newFileId = persistUploadedFileRecord($db, $payload, null, null);
+        syncTelegramUploadCaptions($telegramService, $config, $payload, $state['user'] ?? [], $newFileId);
+
+        $shareToken = bin2hex(random_bytes(24));
+        $expiresAt = date('Y-m-d H:i:s', time() + (((int)$state['expires_in_minutes']) * 60));
+        $db->prepare("UPDATE files SET share_token = ?, share_expires_at = ?, is_public_upload = 1 WHERE id = ?")
+            ->execute([$shareToken, $expiresAt, $newFileId]);
+
+        $uri = $request->getUri();
+        $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority();
+        $shareUrl = $baseUrl . '/share/' . $shareToken;
+
+        $notifyEmail = trim((string)($state['notify_email'] ?? ''));
+        $emailResult = null;
+        if ($notifyEmail !== '' && $resendService !== null) {
+            $humanExpiry = date('d.m.Y H:i', strtotime($expiresAt));
+            $emailResult = $resendService->sendShareLinkEmail(
+                $notifyEmail,
+                $shareUrl,
+                $payload['file_name'],
+                formatBytes((int)$payload['file_size']),
+                $humanExpiry
+            );
+        }
+
+        deletePublicUploadState($uploadId);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'share_url' => $shareUrl,
+            'file_id' => $newFileId,
+            'display_name' => $payload['display_name'],
+            'original_name' => $payload['file_name'],
+            'chunk_count' => (int)($payload['chunk_count'] ?? 1),
+            'chunk_size_bytes' => (int)($state['chunk_size_bytes'] ?? getPublicShareChunkSizeBytes()),
+            'is_chunked' => !empty($payload['is_chunked']),
+            'expires_at' => date('c', strtotime($expiresAt)),
+            'expires_in_minutes' => (int)$state['expires_in_minutes'],
+            'email_sent' => $emailResult !== null ? ($emailResult['success'] ?? false) : false,
+            'email_to' => $notifyEmail !== '' ? $notifyEmail : null,
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    } catch (Exception $e) {
+        $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+});
+
 $app->get('/files', function (Request $request, Response $response) use ($db) {
     $user = $request->getAttribute('user');
     $queryParams = $request->getQueryParams();
@@ -1788,13 +2223,16 @@ $app->get('/share/collection/{token}/download-zip', function (Request $request, 
     }
 });
 
-$app->get('/share/{token}', function (Request $request, Response $response, array $args) use ($db) {
+$app->get('/share/{token}', function (Request $request, Response $response, array $args) use ($db, $telegramService, $config) {
     $shareToken = $args['token'];
 
-    $stmt = $db->prepare("SELECT * FROM files WHERE share_token = ? AND deleted_at IS NULL LIMIT 1");
-    $stmt->execute([$shareToken]);
-    $file = $stmt->fetch();
+    $resolution = resolveSharedFileOrHandleExpiration($db, $telegramService, $config, $shareToken);
+    if ($resolution['status'] === 'expired') {
+        $response->getBody()->write('Link suresi doldu. Dosya otomatik olarak silindi.');
+        return $response->withStatus(410)->withHeader('Content-Type', 'text/plain; charset=utf-8');
+    }
 
+    $file = $resolution['file'];
     if (!$file) {
         $response->getBody()->write('File not found');
         return $response->withStatus(404)->withHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -1807,7 +2245,10 @@ $app->get('/share/{token}', function (Request $request, Response $response, arra
     $fileName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
     $mimeType = htmlspecialchars($file['mime_type'] ?: 'Unknown file type', ENT_QUOTES, 'UTF-8');
     $sizeLabel = formatBytes((int)($file['file_size'] ?? 0));
-    $uploadedAt = !empty($file['upload_date']) ? date('d.m.Y H:i', strtotime($file['upload_date'])) : '-';
+    $uploadedAt = !empty($file['created_at']) ? date('d.m.Y H:i', strtotime((string)$file['created_at'])) : '-';
+    $deleteAtLabel = !empty($file['share_expires_at'])
+        ? date('d.m.Y H:i', strtotime((string)$file['share_expires_at']))
+        : (!empty($file['is_public_upload']) ? 'Ilk erisimde silinecek' : 'Otomatik silme yok');
     $shareMessage = "Bu dosyayi indir:\n" . $displayName . "\n" . $downloadUrl;
     $shareMessageHtml = htmlspecialchars($shareMessage, ENT_QUOTES, 'UTF-8');
     $telegramShareUrl = 'https://t.me/share/url?url=' . rawurlencode($downloadUrl) . '&text=' . rawurlencode("Bu dosyayi indir: " . $displayName);
@@ -1867,6 +2308,10 @@ $app->get('/share/{token}', function (Request $request, Response $response, arra
             <div class="meta-label">Yuklenme Tarihi</div>
             <div class="meta-value">{$uploadedAt}</div>
           </div>
+          <div class="meta-item">
+            <div class="meta-label">Silinme Tarihi</div>
+            <div class="meta-value">{$deleteAtLabel}</div>
+          </div>
         </div>
         <div class="share-box">
           <div class="share-box-title">Arkadasina gondermeye hazir mesaj</div>
@@ -1922,13 +2367,16 @@ HTML;
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 
-$app->get('/share/{token}/download', function (Request $request, Response $response, array $args) use ($db, $telegramService) {
+$app->get('/share/{token}/download', function (Request $request, Response $response, array $args) use ($db, $telegramService, $config) {
     $shareToken = $args['token'];
 
-    $stmt = $db->prepare("SELECT * FROM files WHERE share_token = ? AND deleted_at IS NULL LIMIT 1");
-    $stmt->execute([$shareToken]);
-    $file = $stmt->fetch();
+    $resolution = resolveSharedFileOrHandleExpiration($db, $telegramService, $config, $shareToken);
+    if ($resolution['status'] === 'expired') {
+        $response->getBody()->write('Link suresi doldu. Dosya silindi.');
+        return $response->withStatus(410)->withHeader('Content-Type', 'text/plain; charset=utf-8');
+    }
 
+    $file = $resolution['file'];
     if (!$file) {
         $response->getBody()->write('File not found');
         return $response->withStatus(404)->withHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -2201,6 +2649,12 @@ $app->get('/shares', function (Request $request, Response $response) {
     return $response->withHeader('Content-Type', 'text/html');
 });
 
+$app->get('/dosya', function (Request $request, Response $response) {
+    $html = file_get_contents(__DIR__ . '/../templates/dosya.html');
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html');
+});
+
 $app->get('/login', function (Request $request, Response $response) {
     $html = file_get_contents(__DIR__ . '/../templates/login.html');
     $response->getBody()->write($html);
@@ -2227,6 +2681,16 @@ $app->get('/config', function (Request $request, Response $response) {
     $response->getBody()->write(json_encode([
         'upload_engine' => 'php',
         'max_bot_api_size' => getBotUploadLimitBytes()
+    ]));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->get('/dosya/config', function (Request $request, Response $response) {
+    $response->getBody()->write(json_encode([
+        'upload_engine' => 'php',
+        'preferred_chunk_floor_bytes' => getPublicShareChunkSizeBytes(),
+        'telegram_bot_limit_bytes' => getBotUploadLimitBytes(),
+        'allowed_durations' => getAllowedPublicShareDurations(),
     ]));
     return $response->withHeader('Content-Type', 'application/json');
 });

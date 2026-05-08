@@ -1,0 +1,421 @@
+.dosya-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.dosya-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 460px);
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.hero-copy,
+.upload-panel,
+.result-panel {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 30px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.09);
+    backdrop-filter: blur(16px);
+}
+
+.hero-copy,
+.upload-panel {
+    padding: 2rem;
+}
+
+.hero-badge,
+.result-chip,
+.stat-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 0.95rem;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.hero-badge {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+.hero-copy h1,
+.result-head h2 {
+    margin: 1rem 0 0.7rem;
+    font-size: clamp(2.1rem, 5vw, 3.5rem);
+    line-height: 1.02;
+}
+
+.hero-copy p,
+.dropzone p,
+.drop-meta,
+.progress-foot,
+.result-label {
+    color: #64748b;
+}
+
+.hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1.5rem;
+}
+
+.stat-pill {
+    min-height: 88px;
+    flex-direction: column;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    color: #0f172a;
+}
+
+.stat-pill span {
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.dropzone {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    min-height: 320px;
+    padding: 2rem;
+    border-radius: 28px;
+    border: 2px dashed rgba(37, 99, 235, 0.28);
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.9), rgba(255, 255, 255, 0.95));
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.dropzone.dragover {
+    transform: translateY(-2px);
+    border-color: rgba(16, 185, 129, 0.45);
+    background: linear-gradient(180deg, rgba(236, 253, 245, 0.96), rgba(255, 255, 255, 0.96));
+}
+
+.dropzone input {
+    display: none;
+}
+
+.drop-icon {
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #3e577a, #2563eb);
+    color: #fff;
+    font-size: 2.6rem;
+    font-weight: 300;
+}
+
+.dropzone h2 {
+    margin: 0;
+    font-size: 1.55rem;
+}
+
+.selected-file,
+.upload-plan,
+.progress-card,
+.result-card {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.expiry-field {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 1rem;
+}
+
+.expiry-field span {
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.expiry-field select {
+    min-height: 50px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.96);
+    padding: 0 1rem;
+    font: inherit;
+    color: #0f172a;
+    outline: none;
+}
+
+.selected-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.upload-plan {
+    display: grid;
+    gap: 0.8rem;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.94));
+}
+
+.upload-plan-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.upload-plan-title {
+    margin-top: 0.3rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.upload-plan-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.upload-plan-meta {
+    color: #475569;
+    font-weight: 600;
+}
+
+.upload-plan-warning,
+.inline-note {
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
+    background: rgba(248, 250, 252, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: #64748b;
+}
+
+.upload-plan-warning.is-safe {
+    background: rgba(236, 253, 245, 0.92);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: #047857;
+}
+
+.upload-plan-warning.is-caution {
+    background: rgba(255, 251, 235, 0.94);
+    border-color: rgba(245, 158, 11, 0.25);
+    color: #b45309;
+}
+
+.selected-label,
+.result-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.selected-name {
+    margin-top: 0.3rem;
+    font-weight: 800;
+    word-break: break-word;
+}
+
+.selected-size {
+    white-space: nowrap;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.upload-button,
+.secondary-button {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 1rem;
+    border: none;
+    border-radius: 18px;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.upload-button {
+    background: linear-gradient(135deg, #3e577a, #2563eb);
+    color: #fff;
+}
+
+.upload-button:disabled,
+.secondary-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.progress-head,
+.result-head,
+.result-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.progress-track {
+    margin-top: 0.9rem;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3e577a, #2563eb);
+}
+
+.result-panel {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+}
+
+.result-chip {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.email-field input {
+    min-height: 50px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.96);
+    padding: 0 1rem;
+    font: inherit;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.email-field input:focus {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.email-field input::placeholder {
+    color: #94a3b8;
+}
+
+.email-sent-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.12));
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #059669;
+    font-size: 0.9rem;
+    font-weight: 600;
+    animation: emailBadgeSlideIn 0.4s ease;
+}
+
+.email-sent-badge .email-icon {
+    font-size: 1.3rem;
+}
+
+.email-sent-badge strong {
+    color: #047857;
+}
+
+@keyframes emailBadgeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.share-link {
+    display: block;
+    margin-top: 0.4rem;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 800;
+    word-break: break-all;
+}
+
+.result-actions {
+    margin-top: 1rem;
+}
+
+.result-expiry {
+    margin-top: 0.7rem;
+    color: #b45309;
+    font-weight: 700;
+}
+
+.secondary-button {
+    margin-top: 0;
+    width: auto;
+    padding: 0 1.25rem;
+    background: rgba(255, 255, 255, 0.94);
+    color: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 980px) {
+    .dosya-hero {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .dosya-shell {
+        padding: 1rem;
+    }
+
+    .hero-copy,
+    .upload-panel,
+    .result-panel {
+        border-radius: 24px;
+        padding: 1.25rem;
+    }
+
+    .hero-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .selected-file,
+    .result-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .secondary-button {
+        width: 100%;
+    }
+}

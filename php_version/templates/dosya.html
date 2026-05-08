@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dosya.co Tarzi Yukleme - Telegram Drive</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dosya.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="window.location.href='/'">💠 Telegram Drive</div>
+        <div class="user-info">
+            <button class="btn btn-outline" onclick="window.location.href='/shares'">Paylaşım Merkezi</button>
+            <button class="btn btn-outline" onclick="window.location.href='/'">Dashboard</button>
+        </div>
+    </nav>
+
+    <main class="dosya-shell">
+        <section class="dosya-hero">
+            <div class="hero-copy">
+                <div class="hero-badge">Hizli Link Yukleme</div>
+                <h1>Dosyani birak, linkini al, indirilirken tek parca gibi acilsin.</h1>
+                <p>Bu sayfa dosya boyutuna gore en uygun yukleme yolunu secer. Limit altindaki dosyalar tek parca
+                    gider, buyuk dosyalar ise guvenli boyutlarda parcalanir; indirme tarafinda gerekirse backend bunlari birlestirir.</p>
+                <div class="hero-stats">
+                    <div class="stat-pill">
+                        <span>Upload Motoru</span>
+                        <strong>Akilli PHP</strong>
+                    </div>
+                    <div class="stat-pill">
+                        <span>Paylasim</span>
+                        <strong>Direkt Link</strong>
+                    </div>
+                    <div class="stat-pill">
+                        <span>Indirme</span>
+                        <strong>Birlesik Cikis</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="upload-panel">
+                <label class="dropzone" id="dropzone" for="fileInput">
+                    <input id="fileInput" type="file">
+                    <div class="drop-icon">+</div>
+                    <h2>Dosya Yukle</h2>
+                    <p>Dosyayi surukleyip birak veya secerek yukle.</p>
+                    <div class="drop-meta" id="dropMeta">Parca boyutu bilgisi yukleniyor...</div>
+                </label>
+
+                <div class="selected-file hidden" id="selectedFileCard">
+                    <div>
+                        <div class="selected-label">Secilen Dosya</div>
+                        <div class="selected-name" id="selectedFileName">-</div>
+                    </div>
+                    <div class="selected-size" id="selectedFileSize">0 B</div>
+                </div>
+
+                <div class="upload-plan hidden" id="uploadPlanCard">
+                    <div class="upload-plan-head">
+                        <div>
+                            <div class="selected-label">Tahmini Yukleme Plani</div>
+                            <div class="upload-plan-title" id="uploadPlanTitle">Plan hesaplaniyor</div>
+                        </div>
+                        <div class="upload-plan-chip" id="uploadPlanChip">-</div>
+                    </div>
+                    <div class="upload-plan-meta" id="uploadPlanMeta">-</div>
+                    <div class="upload-plan-warning" id="uploadPlanWarning">-</div>
+                </div>
+
+                <label class="expiry-field">
+                    <span>Link Suresi</span>
+                    <select id="expirySelect">
+                        <option value="60">1 saat</option>
+                        <option value="360">6 saat</option>
+                        <option value="1440" selected>24 saat</option>
+                        <option value="10080">7 gun</option>
+                    </select>
+                </label>
+
+                <label class="expiry-field email-field">
+                    <span>📧 E-posta ile Gonder (istege bagli)</span>
+                    <input type="email" id="notifyEmail" placeholder="ornek@mail.com" autocomplete="email">
+                </label>
+
+                <div class="inline-note" id="uploadHint">
+                    Link suresi bitince paylasim kapanir ve public yuklenen dosya otomatik silinir.
+                </div>
+
+                <button class="upload-button" id="uploadButton" type="button">Link Olustur</button>
+
+                <div class="progress-card hidden" id="progressCard">
+                    <div class="progress-head">
+                        <span>Yukleme ilerliyor</span>
+                        <strong id="progressText">0%</strong>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-foot" id="progressFoot">Yukleme baslamaya hazir.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="result-panel hidden" id="resultPanel">
+            <div class="result-head">
+                <div>
+                    <div class="hero-badge">Link Hazir</div>
+                    <h2>Paylasim linkin olustu.</h2>
+                </div>
+                <div class="result-chip" id="chunkInfoChip">0 parca</div>
+            </div>
+
+            <div class="email-sent-badge hidden" id="emailSentBadge">
+                <span class="email-icon">✉️</span>
+                <span>Link <strong id="emailSentTo">-</strong> adresine gonderildi</span>
+            </div>
+
+            <div class="result-card">
+                <div class="result-label">Paylasim Linki</div>
+                <a href="#" target="_blank" rel="noopener" id="shareLinkText" class="share-link">-</a>
+                <div class="result-expiry" id="expiryText">-</div>
+                <div class="result-actions">
+                    <button class="secondary-button" id="copyLinkButton" type="button">Linki Kopyala</button>
+                    <button class="secondary-button" id="openLinkButton" type="button">Sayfayi Ac</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/dosya.js"></script>
+</body>
+
+</html>

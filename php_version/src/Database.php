@@ -53,6 +53,7 @@ class Database
                 
                 // MySQL specific charset
                 self::$instance->exec("SET NAMES utf8mb4");
+                self::$instance->exec("SET time_zone = '+00:00'");
             } catch (PDOException $e) {
                 // If DB doesn't exist, try connecting without db name and creating it
                 try {
@@ -61,6 +62,8 @@ class Database
                     self::$instance = new PDO("mysql:host=$host;port=$port;dbname=$dbName", $user, $pass);
                     self::$instance->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                     self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+                    self::$instance->exec("SET NAMES utf8mb4");
+                    self::$instance->exec("SET time_zone = '+00:00'");
                 } catch (PDOException $e2) {
                     die("Database connection failed: " . $e2->getMessage());
                 }
@@ -139,6 +142,7 @@ class Database
             file_name VARCHAR(500) NOT NULL,
             display_name VARCHAR(500),
             share_token VARCHAR(64) UNIQUE NULL,
+            share_expires_at TIMESTAMP NULL DEFAULT NULL,
             file_size BIGINT NOT NULL,
             file_type VARCHAR(100),
             mime_type VARCHAR(255),
@@ -146,6 +150,7 @@ class Database
             telegram_url TEXT,
             uploaded_by BIGINT,
             user_id INT,
+            is_public_upload TINYINT(1) DEFAULT 0,
             bot_token VARCHAR(255),
             folder_id INT DEFAULT NULL,
             is_favorite TINYINT(1) DEFAULT 0,
@@ -163,9 +168,11 @@ class Database
         $fileColumns = [
             'display_name' => "VARCHAR(500) NULL AFTER file_name",
             'share_token' => "VARCHAR(64) NULL AFTER display_name",
+            'share_expires_at' => "TIMESTAMP NULL DEFAULT NULL AFTER share_token",
             'telegram_url' => "TEXT NULL AFTER file_path",
             'uploaded_by' => "BIGINT NULL AFTER telegram_url",
             'bot_token' => "VARCHAR(255) NULL AFTER user_id",
+            'is_public_upload' => "TINYINT(1) DEFAULT 0 AFTER user_id",
             'upload_engine' => "VARCHAR(20) DEFAULT 'php' AFTER bot_token",
             'is_chunked' => "TINYINT(1) DEFAULT 0 AFTER upload_engine",
             'chunk_count' => "INT DEFAULT 1 AFTER is_chunked",
