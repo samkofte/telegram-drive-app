@@ -65,7 +65,7 @@ class Database
                     self::$instance->exec("SET NAMES utf8mb4");
                     self::$instance->exec("SET time_zone = '+00:00'");
                 } catch (PDOException $e2) {
-                    die("Database connection failed: " . $e2->getMessage());
+                    throw new \Exception("Database connection failed: " . $e2->getMessage());
                 }
             }
         }
@@ -75,6 +75,41 @@ class Database
     public static function createTables(): void
     {
         $db = self::getInstance();
+        
+        // Settings table
+        $db->exec("CREATE TABLE IF NOT EXISTS settings (
+            `key` VARCHAR(255) PRIMARY KEY,
+            `value` TEXT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )");
+
+        // Seed default settings if empty
+        $stmt = $db->query("SELECT COUNT(*) FROM settings");
+        if ($stmt->fetchColumn() == 0) {
+            $defaultSettings = [
+                'TELEGRAM_BOT_TOKEN' => '',
+                'TELEGRAM_CHAT_ID' => '',
+                'SECRET_KEY' => bin2hex(random_bytes(32)),
+                'RESEND_API_KEY' => '',
+                'TELEGRAM_BOT_UPLOAD_LIMIT' => (string)(19.5 * 1024 * 1024),
+                'PUBLIC_SHARE_CHUNK_SIZE' => (string)(8 * 1024 * 1024),
+                'OPENWA_API_URL' => 'http://localhost:2785',
+                'OPENWA_API_KEY' => 'owa_k1_f51b837227a91edc1eb3543c0d3af055c3645e64e26f34fba9b4d67564fe926e'
+            ];
+            $insert = $db->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?)");
+            foreach ($defaultSettings as $k => $v) {
+                $insert->execute([$k, $v]);
+            }
+        } else {
+            // Ensure new settings are seeded even if settings table is not empty
+            $checkStmt = $db->prepare("SELECT COUNT(*) FROM settings WHERE `key` = ?");
+            $checkStmt->execute(['OPENWA_API_URL']);
+            if ($checkStmt->fetchColumn() == 0) {
+                $insert = $db->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?)");
+                $insert->execute(['OPENWA_API_URL', 'http://localhost:2785']);
+                $insert->execute(['OPENWA_API_KEY', 'owa_k1_f51b837227a91edc1eb3543c0d3af055c3645e64e26f34fba9b4d67564fe926e']);
+            }
+        }
         
         // Users table
         $db->exec("CREATE TABLE IF NOT EXISTS users (

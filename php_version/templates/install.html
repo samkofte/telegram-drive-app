@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kurulum Sihirbazı - Telegram Drive</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(15, 23, 42, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, var(--bg-dark) 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .install-container {
+            width: 100%;
+            max-width: 650px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .install-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+            border-radius: 26px;
+            z-index: -1;
+            opacity: 0.15;
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #a5b4fc 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        /* Progress Steps */
+        .steps-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .steps-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .step-dot {
+            width: 40px;
+            height: 40px;
+            background: #1e293b;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            z-index: 2;
+            color: var(--text-muted);
+            transition: all 0.4s ease;
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+        }
+
+        .step-dot.completed {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        /* Form Wizard Sections */
+        .form-step {
+            display: none;
+            animation: slideIn 0.4s ease forwards;
+        }
+
+        .form-step.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert-info {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .helper-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="install-container">
+        <div class="logo">💠 Telegram Drive</div>
+        <div class="subtitle">PHP Sürümü Kurulum Sihirbazı</div>
+
+        <div class="steps-indicator">
+            <div class="step-dot active" id="dot-1">1</div>
+            <div class="step-dot" id="dot-2">2</div>
+            <div class="step-dot" id="dot-3">3</div>
+        </div>
+
+        <form id="installForm">
+            <!-- Step 1: Database Settings -->
+            <div class="form-step active" id="step-1">
+                <div class="alert-info">
+                    Veritabanı bilgilerinizi giriniz. Kurulum sihirbazı otomatik olarak veritabanını oluşturacak ve tabloları kuracaktır.
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="db_host">Veritabanı Sunucusu</label>
+                        <input type="text" id="db_host" value="localhost" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="db_port">Port</label>
+                        <input type="text" id="db_port" value="3306" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="db_name">Veritabanı Adı</label>
+                    <input type="text" id="db_name" value="telegram_drive" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="db_user">Kullanıcı Adı</label>
+                        <input type="text" id="db_user" value="root" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="db_pass">Şifre</label>
+                        <input type="password" id="db_pass" placeholder="Varsa şifre girin">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Telegram Settings -->
+            <div class="form-step" id="step-2">
+                <div class="alert-info">
+                    Uygulamanın çalışabilmesi için bir Telegram Bot Token'ı ve hedef Chat ID (Logların ve dosyaların depolanacağı grup/kanal ID) gerekmektedir.
+                </div>
+                <div class="form-group">
+                    <label for="telegram_bot_token">Telegram Bot Token(ları)</label>
+                    <input type="text" id="telegram_bot_token" placeholder="Örn: 123456:ABC-DEF...,789012:XYZ..." required>
+                    <div class="helper-text">Virgülle ayırarak birden fazla bot token ekleyebilirsiniz. Bu sayede yüklemeler dağıtılır.</div>
+                </div>
+                <div class="form-group">
+                    <label for="telegram_chat_id">Telegram Chat (Grup/Kanal) ID</label>
+                    <input type="text" id="telegram_chat_id" placeholder="Örn: -100123456789 veya chat_id" required>
+                    <div class="helper-text">Dosyaların depolanacağı Telegram kanalı veya grubunun ID'si (Botun o grupta yetkili olması gerekir).</div>
+                </div>
+                <div class="form-group">
+                    <label for="resend_api_key">Resend API Key (E-posta - İsteğe Bağlı)</label>
+                    <input type="text" id="resend_api_key" placeholder="re_...">
+                    <div class="helper-text">E-posta bildirimleri ve şifre sıfırlama için isteğe bağlı Resend API anahtarı.</div>
+                </div>
+            </div>
+
+            <!-- Step 3: Admin User Settings -->
+            <div class="form-step" id="step-3">
+                <div class="alert-info">
+                    Yönetici paneline giriş yapabilmeniz için yönetici hesabınızı oluşturun.
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="admin_firstname">Ad</label>
+                        <input type="text" id="admin_firstname" value="Admin" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin_lastname">Soyad</label>
+                        <input type="text" id="admin_lastname" value="Kullanıcı" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="admin_email">E-posta Adresi</label>
+                    <input type="email" id="admin_email" placeholder="admin@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_username">Kullanıcı Adı</label>
+                    <input type="text" id="admin_username" value="admin" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_password">Yönetici Şifresi</label>
+                    <input type="password" id="admin_password" placeholder="En az 6 karakter" required>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="btn-container">
+                <button type="button" class="btn btn-secondary btn-disabled" id="prevBtn" onclick="nextPrev(-1)" disabled>Geri</button>
+                <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextPrev(1)">İleri</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let currentStep = 1;
+
+        function showStep(stepNum) {
+            document.querySelectorAll('.form-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.getElementById(`step-${stepNum}`).classList.add('active');
+
+            // Update dots
+            document.querySelectorAll('.step-dot').forEach((dot, idx) => {
+                if (idx + 1 === stepNum) {
+                    dot.className = 'step-dot active';
+                } else if (idx + 1 < stepNum) {
+                    dot.className = 'step-dot completed';
+                    dot.innerHTML = '✓';
+                } else {
+                    dot.className = 'step-dot';
+                    dot.innerHTML = idx + 1;
+                }
+            });
+
+            // Update buttons
+            if (stepNum === 1) {
+                document.getElementById('prevBtn').setAttribute('disabled', 'true');
+                document.getElementById('prevBtn').classList.add('btn-disabled');
+            } else {
+                document.getElementById('prevBtn').removeAttribute('disabled');
+                document.getElementById('prevBtn').classList.remove('btn-disabled');
+            }
+
+            if (stepNum === 3) {
+                document.getElementById('nextBtn').textContent = 'Kurulumu Tamamla';
+            } else {
+                document.getElementById('nextBtn').textContent = 'İleri';
+            }
+        }
+
+        async function nextPrev(n) {
+            if (n === 1 && !validateForm()) return false;
+
+            currentStep += n;
+            if (currentStep > 3) {
+                await submitInstallation();
+                currentStep = 3; // Reset step on submit in case of failure
+                return false;
+            }
+            showStep(currentStep);
+        }
+
+        function validateForm() {
+            const currentStepEl = document.getElementById(`step-${currentStep}`);
+            const inputs = currentStepEl.querySelectorAll('input[required]');
+            let valid = true;
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = '#f43f5e';
+                    valid = false;
+                } else {
+                    input.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                }
+            });
+            if (!valid) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata',
+                    text: 'Lütfen gerekli alanları doldurunuz.',
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    color: '#fff'
+                });
+            }
+            return valid;
+        }
+
+        async function submitInstallation() {
+            Swal.fire({
+                title: 'Kuruluyor...',
+                text: 'Lütfen bekleyin, veritabanı tabloları oluşturuluyor.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff'
+            });
+
+            const payload = {
+                db_host: document.getElementById('db_host').value,
+                db_port: document.getElementById('db_port').value,
+                db_name: document.getElementById('db_name').value,
+                db_user: document.getElementById('db_user').value,
+                db_pass: document.getElementById('db_pass').value,
+                telegram_bot_token: document.getElementById('telegram_bot_token').value,
+                telegram_chat_id: document.getElementById('telegram_chat_id').value,
+                resend_api_key: document.getElementById('resend_api_key').value,
+                admin_firstname: document.getElementById('admin_firstname').value,
+                admin_lastname: document.getElementById('admin_lastname').value,
+                admin_email: document.getElementById('admin_email').value,
+                admin_username: document.getElementById('admin_username').value,
+                admin_password: document.getElementById('admin_password').value
+            };
+
+            try {
+                const response = await fetch('/api/install', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Kurulum Başarılı!',
+                        text: 'Telegram Drive başarıyla kuruldu. Giriş sayfasına yönlendiriliyorsunuz.',
+                        timer: 3000,
+                        timerProgressBar: true,
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff',
+                        willClose: () => {
+                            window.location.href = '/login';
+                        }
+                    });
+                } else {
+                    let errMsg = result.error || 'Bilinmeyen bir hata oluştu.';
+                    if (result.env_error) {
+                        // Special handling if DB connection was fine, but write permission for .env failed.
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Veritabanı Kuruldu Fakat .env Yazılamadı',
+                            html: `<div style="text-align: left; font-size: 0.9rem;">
+                                      Veritabanı tabloları ve yönetici hesabı başarıyla oluşturuldu.<br><br>
+                                      Ancak ana dizinde <b>.env</b> dosyası yazma izni olmadığı için otomatik oluşturulamadı.<br><br>
+                                      Lütfen sunucunuzda ana dizinde <b>.env</b> adında bir dosya oluşturup içine aşağıdakileri yapıştırın:
+                                   </div>
+                                   <textarea style="width:100%; height:120px; margin-top:10px; background:#1e293b; color:#fff; border:1px solid #475569; padding:8px; border-radius:6px; font-family:monospace;" readonly>${result.env_content}</textarea>`,
+                            confirmButtonText: 'Tamamladım, Girişe Git',
+                            background: 'rgba(30, 41, 59, 0.95)',
+                            color: '#fff'
+                        }).then(() => {
+                            window.location.href = '/login';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Kurulum Hatası',
+                            text: errMsg,
+                            background: 'rgba(30, 41, 59, 0.95)',
+                            color: '#fff'
+                        });
+                    }
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'İletişim Hatası',
+                    text: 'Sunucuyla bağlantı kurulamadı: ' + error.message,
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    color: '#fff'
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

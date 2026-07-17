@@ -22,9 +22,71 @@ require __DIR__ . '/../vendor/autoload.php';
 // Load .env
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+
 if (file_exists(__DIR__ . '/../.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
     $dotenv->load();
+}
+
+// Function to check if system is installed
+function checkIsInstalled(): bool {
+    if (!file_exists(__DIR__ . '/../.env')) {
+        return false;
+    }
+    try {
+        $db = Database::getInstance();
+        $stmt = $db->query("SHOW TABLES LIKE 'settings'");
+        if ($stmt->fetch() === false) {
+            return false;
+        }
+        $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+        $adminCount = $stmt->fetch()['count'] ?? 0;
+        return $adminCount > 0;
+    } catch (\Exception $e) {
+        return false;
+    }
+}
+
+$isInstalled = false;
+try {
+    $isInstalled = checkIsInstalled();
+} catch (\Exception $e) {
+    $isInstalled = false;
+}
+
+// Configuration defaults
+$config = [
+    'TELEGRAM_BOT_TOKEN' => '',
+    'TELEGRAM_CHAT_ID' => '',
+    'SECRET_KEY' => 'your-secret-key-here-change-in-production',
+    'RESEND_API_KEY' => '',
+    'TELEGRAM_BOT_UPLOAD_LIMIT' => 19.5 * 1024 * 1024,
+    'PUBLIC_SHARE_CHUNK_SIZE' => 8 * 1024 * 1024,
+    'OPENWA_API_URL' => 'http://localhost:2785',
+    'OPENWA_API_KEY' => 'owa_k1_f51b837227a91edc1eb3543c0d3af055c3645e64e26f34fba9b4d67564fe926e',
+];
+
+// If installed, load from DB and merge with env fallback
+if ($isInstalled) {
+    // Load from env first as fallback
+    foreach ($config as $key => $val) {
+        if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+            $config[$key] = $_ENV[$key];
+        }
+    }
+    
+    // Load from DB settings (takes priority)
+    try {
+        $db = Database::getInstance();
+        $stmt = $db->query("SELECT `key`, `value` FROM settings");
+        while ($row = $stmt->fetch()) {
+            if ($row['value'] !== null && $row['value'] !== '') {
+                $config[$row['key']] = $row['value'];
+            }
+        }
+    } catch (\Exception $e) {
+        error_log("Failed to load settings from database: " . $e->getMessage());
+    }
 }
 
 $app = AppFactory::create();
@@ -50,26 +112,30 @@ $app->options('/{routes:.+}', function ($request, $response, $args) {
     return $response;
 });
 
-// Configuration
-$config = [
-    'TELEGRAM_BOT_TOKEN' => $_ENV['TELEGRAM_BOT_TOKEN'] ?? '',
-    'TELEGRAM_CHAT_ID' => $_ENV['TELEGRAM_CHAT_ID'] ?? '710553403',
-    'SECRET_KEY' => $_ENV['SECRET_KEY'] ?? 'your-secret-key-here-change-in-production',
-];
+// Initialize Services if installed
+$authService = null;
+$telegramService = null;
+$resendService = null;
+$db = null;
 
-// Initialize Services (Filter empty tokens)
-$botTokens = array_filter(array_map('trim', explode(',', $config['TELEGRAM_BOT_TOKEN'])));
-if (empty($botTokens)) {
-    die("Error: No TELEGRAM_BOT_TOKEN found in .env");
+if ($isInstalled) {
+    try {
+        $botTokens = array_filter(array_map('trim', explode(',', $config['TELEGRAM_BOT_TOKEN'])));
+        $authService = new AuthService($config['SECRET_KEY']);
+        if (!empty($botTokens)) {
+            $telegramService = new TelegramService($botTokens);
+        }
+        $resendApiKey = $config['RESEND_API_KEY'] ?? '';
+        $resendService = $resendApiKey !== '' ? new ResendService($resendApiKey) : null;
+        $db = Database::getInstance();
+        
+        // Ensure tables are synchronized
+        Database::createTables();
+    } catch (\Exception $e) {
+        error_log("Failed to initialize services: " . $e->getMessage());
+        $isInstalled = false;
+    }
 }
-$authService = new AuthService($config['SECRET_KEY']);
-$telegramService = new TelegramService($botTokens);
-$resendApiKey = $_ENV['RESEND_API_KEY'] ?? '';
-$resendService = $resendApiKey !== '' ? new ResendService($resendApiKey) : null;
-$db = Database::getInstance();
-
-// Initialize Tables
-Database::createTables();
 
 function formatBytes(int $bytes): string
 {
@@ -139,13 +205,15 @@ function buildPlanPayload(array $user): array
 
 function getBotUploadLimitBytes(): int
 {
-    $configured = (int)($_ENV['TELEGRAM_BOT_UPLOAD_LIMIT'] ?? 0);
-    return $configured > 0 ? $configured : 45 * 1024 * 1024;
+    global $config;
+    $configured = (int)($config['TELEGRAM_BOT_UPLOAD_LIMIT'] ?? 0);
+    return $configured > 0 ? $configured : 19.5 * 1024 * 1024;
 }
 
 function getPublicShareChunkSizeBytes(): int
 {
-    $configured = (int)($_ENV['PUBLIC_SHARE_CHUNK_SIZE'] ?? 0);
+    global $config;
+    $configured = (int)($config['PUBLIC_SHARE_CHUNK_SIZE'] ?? 0);
     if ($configured > 0) {
         return $configured;
     }
@@ -366,6 +434,15 @@ function createChunkUploadPayload($file, array $user, TelegramService $telegramS
         $media = extractTelegramMedia($result);
         $usedToken = $result['used_token'] ?? null;
 
+        $userTgId = isset($user['telegram_id']) ? (string)$user['telegram_id'] : '';
+        if ($userTgId !== '' && $userTgId !== (string)$config['TELEGRAM_CHAT_ID']) {
+            try {
+                $telegramService->copyMessage($userTgId, $config['TELEGRAM_CHAT_ID'], (int)$media['message_id'], $usedToken);
+            } catch (\Exception $e) {
+                error_log("Failed to copy message to user private chat: " . $e->getMessage());
+            }
+        }
+
         return [
             'telegram_file_id' => $media['file_id'],
             'telegram_message_id' => $media['message_id'],
@@ -453,6 +530,15 @@ function createChunkUploadPayload($file, array $user, TelegramService $telegramS
 
         $media = extractTelegramMedia($result);
         $usedToken = $result['used_token'] ?? $token;
+
+        $userTgId = isset($user['telegram_id']) ? (string)$user['telegram_id'] : '';
+        if ($userTgId !== '' && $userTgId !== (string)$config['TELEGRAM_CHAT_ID']) {
+            try {
+                $telegramService->copyMessage($userTgId, $config['TELEGRAM_CHAT_ID'], (int)$media['message_id'], $usedToken);
+            } catch (\Exception $e) {
+                error_log("Failed to copy chunk message to user private chat: " . $e->getMessage());
+            }
+        }
 
         $parts[] = [
             'part_index' => $index,
@@ -862,6 +948,15 @@ function streamChunkedFile(PDO $db, TelegramService $telegramService, array $fil
 
     header('Cache-Control: no-store');
 
+    // Disable output buffering to ensure instant streaming and avoid memory exhaustion
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    $bundlePath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'cacert.pem';
+    $verifyOption = is_file($bundlePath) ? $bundlePath : true;
+    $client = new \GuzzleHttp\Client(['verify' => $verifyOption]);
+
     foreach ($parts as $part) {
         $token = $part['bot_token'] ?? null;
         $fileInfo = $telegramService->getFile($part['telegram_file_id'], $token);
@@ -870,17 +965,17 @@ function streamChunkedFile(PDO $db, TelegramService $telegramService, array $fil
         }
 
         $url = $telegramService->getFileUrl($fileInfo['result']['file_path'], $token);
-        $remote = fopen($url, 'rb');
-        if (!$remote) {
-            throw new Exception('Chunk stream could not be opened');
+        
+        try {
+            $response = $client->request('GET', $url, ['stream' => true]);
+            $body = $response->getBody();
+            while (!$body->eof()) {
+                echo $body->read(1024 * 1024);
+                flush();
+            }
+        } catch (\Exception $e) {
+            throw new Exception('Chunk stream could not be opened: ' . $e->getMessage());
         }
-
-        while (!feof($remote)) {
-            echo fread($remote, 1024 * 1024);
-            flush();
-        }
-
-        fclose($remote);
     }
 
     exit;
@@ -895,26 +990,36 @@ function streamTelegramStoredFile(TelegramService $telegramService, array $file,
     }
 
     $url = $telegramService->getFileUrl($fileInfo['result']['file_path'], $token);
-    $remote = fopen($url, 'rb');
-    if (!$remote) {
-        throw new Exception('File stream could not be opened');
-    }
+    
+    $bundlePath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'cacert.pem';
+    $verifyOption = is_file($bundlePath) ? $bundlePath : true;
+    $client = new \GuzzleHttp\Client(['verify' => $verifyOption]);
 
-    $safeFilename = basename(($file['display_name'] ?: $file['file_name']) ?: 'download.bin');
-    header('Content-Type: ' . ($file['mime_type'] ?: 'application/octet-stream'));
-    header('Content-Disposition: ' . ($disposition === 'inline' ? 'inline' : 'attachment') . '; filename="' . $safeFilename . '"');
-    if (!empty($file['file_size'])) {
-        header('Content-Length: ' . (string)((int)$file['file_size']));
-    }
-    header('Cache-Control: no-store');
+    try {
+        $response = $client->request('GET', $url, ['stream' => true]);
+        $body = $response->getBody();
 
-    while (!feof($remote)) {
-        echo fread($remote, 1024 * 1024);
-        flush();
-    }
+        $safeFilename = basename(($file['display_name'] ?: $file['file_name']) ?: 'download.bin');
+        header('Content-Type: ' . ($file['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Disposition: ' . ($disposition === 'inline' ? 'inline' : 'attachment') . '; filename="' . $safeFilename . '"');
+        if (!empty($file['file_size'])) {
+            header('Content-Length: ' . (string)((int)$file['file_size']));
+        }
+        header('Cache-Control: no-store');
 
-    fclose($remote);
-    exit;
+        // Disable output buffering to ensure instant streaming and avoid memory exhaustion
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        while (!$body->eof()) {
+            echo $body->read(1024 * 1024);
+            flush();
+        }
+        exit;
+    } catch (\Exception $e) {
+        throw new Exception('File stream could not be opened: ' . $e->getMessage());
+    }
 }
 
 function buildSafeDownloadName(?string $name, string $fallback = 'download.bin'): string
@@ -952,15 +1057,16 @@ function copyRemoteFileToHandle(TelegramService $telegramService, string $telegr
     }
 
     $url = $telegramService->getFileUrl($fileInfo['result']['file_path'], $token);
-    $remote = fopen($url, 'rb');
-    if (!$remote) {
-        throw new Exception('Remote file stream could not be opened');
-    }
-
+    
+    $bundlePath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'cacert.pem';
+    $verifyOption = is_file($bundlePath) ? $bundlePath : true;
+    
+    $client = new \GuzzleHttp\Client(['verify' => $verifyOption]);
+    
     try {
-        stream_copy_to_stream($remote, $targetHandle);
-    } finally {
-        fclose($remote);
+        $client->request('GET', $url, ['sink' => $targetHandle]);
+    } catch (\Exception $e) {
+        throw new Exception('Remote file stream could not be opened: ' . $e->getMessage());
     }
 }
 
@@ -2563,16 +2669,23 @@ $app->get('/preview/{id}', function (Request $request, Response $response, array
     $url = $telegramService->getFileUrl($fileInfo['result']['file_path'], $token);
     
     // Proxy stream with cache headers
-    $fp = fopen($url, 'rb');
-    if ($fp) {
+    $bundlePath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'cacert.pem';
+    $verifyOption = is_file($bundlePath) ? $bundlePath : true;
+    $client = new \GuzzleHttp\Client(['verify' => $verifyOption]);
+    
+    try {
+        $res = $client->request('GET', $url, ['stream' => true]);
+        $body = $res->getBody();
         header("Content-Type: " . $file['mime_type']);
         header("Cache-Control: public, max-age=86400");
-        fpassthru($fp);
-        fclose($fp);
+        while (!$body->eof()) {
+            echo $body->read(1024 * 1024);
+            flush();
+        }
         exit;
+    } catch (\Exception $e) {
+        return $response->withStatus(404);
     }
-    
-    return $response->withStatus(404);
 });
 
 // --- API KEYS (ADMIN ONLY OR USER TOO? "adminse eğer" -> Admin features usually include key gen) ---
@@ -3092,5 +3205,455 @@ $app->post('/tags', function (Request $request, Response $response) use ($db) {
     $response->getBody()->write(json_encode(['id' => $id, 'name' => $name, 'color' => $color]));
     return $response->withHeader('Content-Type', 'application/json');
 })->add($authMiddleware);
+
+// --- INSTALLER ROUTES ---
+
+$app->get('/install', function (Request $request, Response $response) {
+    $html = file_get_contents(__DIR__ . '/../templates/install.html');
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html');
+});
+
+$app->post('/api/install', function (Request $request, Response $response) {
+    $data = $request->getParsedBody() ?? [];
+    
+    // Check parameters
+    $required = ['db_host', 'db_port', 'db_name', 'db_user', 'telegram_bot_token', 'telegram_chat_id', 'admin_firstname', 'admin_lastname', 'admin_email', 'admin_username', 'admin_password'];
+    foreach ($required as $field) {
+        if (empty($data[$field])) {
+            $response->getBody()->write(json_encode(['error' => "Eksik alan: {$field}"]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+    }
+    
+    // Dynamically update environment config for Database init
+    $_ENV['DB_HOST'] = $data['db_host'];
+    $_ENV['DB_PORT'] = $data['db_port'];
+    $_ENV['DB_NAME'] = $data['db_name'];
+    $_ENV['DB_USER'] = $data['db_user'];
+    $_ENV['DB_PASS'] = $data['db_pass'] ?? '';
+    
+    try {
+        // Connect and run setup
+        $db = Database::getInstance();
+        Database::createTables();
+        
+        // Save configurations to settings
+        $secretKey = bin2hex(random_bytes(32));
+        
+        $stmt = $db->prepare("UPDATE settings SET `value` = ? WHERE `key` = ?");
+        $stmt->execute([$data['telegram_bot_token'], 'TELEGRAM_BOT_TOKEN']);
+        $stmt->execute([$data['telegram_chat_id'], 'TELEGRAM_CHAT_ID']);
+        $stmt->execute([$data['resend_api_key'] ?? '', 'RESEND_API_KEY']);
+        $stmt->execute([$secretKey, 'SECRET_KEY']);
+        
+        // Register Admin
+        $hash = password_hash($data['admin_password'], PASSWORD_BCRYPT);
+        
+        // Clean existing admin users if any, to prevent duplicates on reinstall
+        $db->query("DELETE FROM users WHERE role = 'admin'");
+        
+        $stmtAdmin = $db->prepare("INSERT INTO users (email, username, password_hash, first_name, last_name, role) VALUES (?, ?, ?, ?, ?, 'admin')");
+        $stmtAdmin->execute([
+            $data['admin_email'],
+            $data['admin_username'],
+            $hash,
+            $data['admin_firstname'],
+            $data['admin_lastname']
+        ]);
+        
+        // Attempt to write .env
+        $envContent = "DB_HOST=" . $data['db_host'] . "\n" .
+                      "DB_PORT=" . $data['db_port'] . "\n" .
+                      "DB_NAME=" . $data['db_name'] . "\n" .
+                      "DB_USER=" . $data['db_user'] . "\n" .
+                      "DB_PASS=\"" . ($data['db_pass'] ?? '') . "\"\n";
+                      
+        $envPath = __DIR__ . '/../.env';
+        $writeSuccess = @file_put_contents($envPath, $envContent);
+        
+        if ($writeSuccess === false) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'env_error' => true,
+                'env_content' => $envContent,
+                'error' => 'Database tables and admin user initialized successfully, but the .env file could not be written due to folder permissions. Please create it manually.'
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+        
+        $response->getBody()->write(json_encode(['success' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
+        
+    } catch (\Exception $e) {
+        $response->getBody()->write(json_encode(['error' => 'Kurulum hatası: ' . $e->getMessage()]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+});
+
+// --- ADMIN SETTINGS ROUTES ---
+
+$app->get('/admin/settings', function (Request $request, Response $response) use ($db) {
+    $localDb = $db ?: Database::getInstance();
+    $stmt = $localDb->query("SELECT `key`, `value` FROM settings");
+    $settings = [];
+    while ($row = $stmt->fetch()) {
+        $settings[$row['key']] = $row['value'];
+    }
+    
+    $response->getBody()->write(json_encode($settings));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($adminMiddleware)->add($authMiddleware);
+
+$app->put('/admin/settings', function (Request $request, Response $response) use ($db) {
+    $localDb = $db ?: Database::getInstance();
+    $data = $request->getParsedBody() ?? [];
+    
+    $localDb->beginTransaction();
+    try {
+        $stmt = $localDb->prepare("UPDATE settings SET `value` = ? WHERE `key` = ?");
+        foreach ($data as $key => $value) {
+            if (in_array($key, ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'SECRET_KEY', 'RESEND_API_KEY', 'TELEGRAM_BOT_UPLOAD_LIMIT', 'PUBLIC_SHARE_CHUNK_SIZE', 'OPENWA_API_URL', 'OPENWA_API_KEY'])) {
+                $stmt->execute([$value, $key]);
+            }
+        }
+        $localDb->commit();
+    } catch (Throwable $e) {
+        if ($localDb->inTransaction()) {
+            $localDb->rollBack();
+        }
+        $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $response->getBody()->write(json_encode(['success' => true, 'message' => 'Ayarlar başarıyla güncellendi']));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($adminMiddleware)->add($authMiddleware);
+
+// --- WHATSAPP (OPENWA) INTEGRATION ROUTES ---
+
+$app->get('/api/whatsapp/status', function (Request $request, Response $response) use ($config) {
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['status' => 'disconnected']));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}", $config);
+    
+    if (isset($result['error']) || isset($result['statusCode'])) {
+        $response->getBody()->write(json_encode(['status' => 'disconnected', 'message' => $result['message'] ?? ($result['error'] ?? 'Disconnected')]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    $status = $result['status'] ?? 'disconnected';
+    $response->getBody()->write(json_encode(['status' => $status, 'details' => $result]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->post('/api/whatsapp/start', function (Request $request, Response $response) use ($config) {
+    $sessionId = getOpenWaSessionId($config);
+    
+    if (!$sessionId) {
+        $createResult = callOpenWaApi('POST', '/api/sessions', $config, [
+            'name' => 'telegram-drive'
+        ]);
+        
+        if (isset($createResult['error']) || isset($createResult['statusCode']) || !isset($createResult['id'])) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $createResult['message'] ?? ($createResult['error'] ?? 'Oturum oluşturulamadı')
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+        $sessionId = $createResult['id'];
+    }
+    
+    $startResult = callOpenWaApi('POST', "/api/sessions/{$sessionId}/start", $config);
+    
+    if (isset($startResult['error']) || isset($startResult['statusCode'])) {
+        $response->getBody()->write(json_encode([
+            'success' => false,
+            'error' => $startResult['message'] ?? ($startResult['error'] ?? 'Oturum başlatılamadı')
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+    }
+    
+    $response->getBody()->write(json_encode(['success' => true, 'result' => $startResult]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->post('/api/whatsapp/stop', function (Request $request, Response $response) use ($config) {
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['success' => false, 'error' => 'Oturum bulunamadı']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+    }
+    
+    $result = callOpenWaApi('POST', "/api/sessions/{$sessionId}/stop", $config);
+    $response->getBody()->write(json_encode(['success' => true, 'result' => $result]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->get('/api/whatsapp/qr', function (Request $request, Response $response) use ($config) {
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['qr' => null]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/qr", $config);
+    $qr = $result['qrCode'] ?? ($result['qr'] ?? null);
+    $response->getBody()->write(json_encode(['qr' => $qr]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->get('/api/whatsapp/chats', function (Request $request, Response $response) use ($config) {
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['error' => 'Oturum bulunamadı']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/chats", $config);
+    
+    if (isset($result['error'])) {
+        $response->getBody()->write(json_encode(['error' => $result['error']]));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $response->getBody()->write(json_encode($result));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $request, Response $response, array $args) use ($config) {
+    $chatId = $args['chatId'];
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['error' => 'Oturum bulunamadı']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=false", $config);
+    
+    if (isset($result['error'])) {
+        $response->getBody()->write(json_encode(['error' => $result['error']]));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $mediaMessages = [];
+    if (is_array($result)) {
+        foreach ($result as $msg) {
+            if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio'])) {
+                $mediaMessages[] = [
+                    'id' => $msg['id'],
+                    'type' => $msg['type'],
+                    'timestamp' => $msg['timestamp'] ?? time(),
+                    'body' => $msg['body'] ?? '',
+                    'fromMe' => $msg['fromMe'] ?? false,
+                    'media' => $msg['media'] ?? null
+                ];
+            }
+        }
+    }
+    
+    $response->getBody()->write(json_encode($mediaMessages));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->post('/api/whatsapp/upload-media', function (Request $request, Response $response) use ($db, $telegramService, $config) {
+    $user = $request->getAttribute('user');
+    $data = $request->getParsedBody() ?? [];
+    $chatId = $data['chatId'] ?? '';
+    $messageId = $data['messageId'] ?? '';
+    
+    if (empty($chatId) || empty($messageId)) {
+        $response->getBody()->write(json_encode(['error' => 'chatId ve messageId zorunludur']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['error' => 'Oturum bulunamadı']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=true", $config);
+    
+    if (isset($result['error'])) {
+        $response->getBody()->write(json_encode(['error' => 'Mesajlar alınamadı: ' . $result['error']]));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $targetMsg = null;
+    if (is_array($result)) {
+        foreach ($result as $msg) {
+            if (($msg['id'] ?? '') === $messageId) {
+                $targetMsg = $msg;
+                break;
+            }
+        }
+    }
+    
+    if (!$targetMsg || empty($targetMsg['media']['data'])) {
+        $response->getBody()->write(json_encode(['error' => 'Belirtilen medya mesajı veya base64 verisi bulunamadı.']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $mediaData = $targetMsg['media'];
+    $base64Data = $mediaData['data'];
+    
+    if (strpos($base64Data, ',') !== false) {
+        $base64Data = explode(',', $base64Data)[1];
+    }
+    
+    $binary = base64_decode($base64Data);
+    if ($binary === false) {
+        $response->getBody()->write(json_encode(['error' => 'Base64 çözümlenemedi']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $mimetype = $mediaData['mimetype'] ?? 'application/octet-stream';
+    $filename = $mediaData['filename'] ?? 'whatsapp_media_' . time();
+    
+    $tempPath = tempnam(sys_get_temp_dir(), 'wa_media_');
+    file_put_contents($tempPath, $binary);
+    
+    $mockUploadedFile = new class($tempPath, $filename, $mimetype) {
+        private $path;
+        private $name;
+        private $type;
+        public function __construct($path, $name, $type) {
+            $this->path = $path;
+            $this->name = $name;
+            $this->type = $type;
+        }
+        public function getFilePath() { return $this->path; }
+        public function getSize() { return filesize($this->path); }
+        public function getClientFilename() { return $this->name; }
+        public function getClientMediaType() { return $this->type; }
+        public function getStream() {
+            return \Slim\Psr7\Factory\StreamFactory::createStreamFromFile($this->path, 'rb');
+        }
+    };
+    
+    $dbConnection = $db ?: Database::getInstance();
+    
+    $dbConnection->beginTransaction();
+    try {
+        $payload = createChunkUploadPayload($mockUploadedFile, $user, $telegramService, $config);
+        
+        $stmt = $dbConnection->prepare("INSERT INTO files (user_id, telegram_file_id, telegram_message_id, file_name, display_name, file_size, mime_type, bot_token, telegram_url, upload_engine, is_chunked, chunk_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $user['id'],
+            $payload['telegram_file_id'],
+            $payload['telegram_message_id'],
+            $payload['file_name'],
+            $payload['display_name'],
+            $payload['file_size'],
+            $payload['mime_type'],
+            $payload['bot_token'],
+            $payload['telegram_url'],
+            'whatsapp',
+            $payload['is_chunked'] ? 1 : 0,
+            $payload['chunk_count']
+        ]);
+        
+        $fileId = $dbConnection->lastInsertId();
+        
+        if ($payload['is_chunked'] && !empty($payload['parts'])) {
+            $partStmt = $dbConnection->prepare("INSERT INTO file_parts (file_id, part_index, telegram_file_id, telegram_message_id, part_name, part_size, mime_type, bot_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            foreach ($payload['parts'] as $part) {
+                $partStmt->execute([
+                    $fileId,
+                    $part['part_index'],
+                    $part['telegram_file_id'],
+                    $part['telegram_message_id'],
+                    $part['part_name'],
+                    $part['part_size'],
+                    $part['mime_type'],
+                    $part['bot_token']
+                ]);
+            }
+        }
+        
+        $dbConnection->commit();
+        @unlink($tempPath);
+        
+        $response->getBody()->write(json_encode(['success' => true, 'file_id' => $fileId, 'name' => $payload['file_name']]));
+        return $response->withHeader('Content-Type', 'application/json');
+        
+    } catch (\Exception $e) {
+        if ($dbConnection->inTransaction()) {
+            $dbConnection->rollBack();
+        }
+        @unlink($tempPath);
+        $response->getBody()->write(json_encode(['error' => 'Yükleme hatası: ' . $e->getMessage()]));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+})->add($authMiddleware);
+
+// --- OPENWA API HELPER ---
+function callOpenWaApi(string $method, string $path, array $config, ?array $body = null) {
+    $apiUrl = rtrim($config['OPENWA_API_URL'], '/');
+    $apiKey = $config['OPENWA_API_KEY'];
+    
+    $client = new \GuzzleHttp\Client(['verify' => false]);
+    
+    $options = [
+        'headers' => [
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type' => 'application/json'
+        ]
+    ];
+    
+    if ($body !== null) {
+        $options['json'] = $body;
+    }
+    
+    try {
+        $response = $client->request($method, $apiUrl . $path, $options);
+        return json_decode($response->getBody()->getContents(), true);
+    } catch (\GuzzleHttp\Exception\BadResponseException $e) {
+        $responseBody = $e->getResponse()->getBody()->getContents();
+        return json_decode($responseBody, true) ?: ['error' => $e->getMessage()];
+    } catch (\Exception $e) {
+        return ['error' => $e->getMessage()];
+    }
+}
+
+function getOpenWaSessionId(array $config) {
+    $sessions = callOpenWaApi('GET', '/api/sessions', $config);
+    if (is_array($sessions)) {
+        foreach ($sessions as $session) {
+            if (($session['name'] ?? '') === 'telegram-drive') {
+                return $session['id'];
+            }
+        }
+    }
+    return null;
+}
+
+// --- INSTALLATION CHECK MIDDLEWARE ---
+
+$app->add(function (Request $request, $handler) use ($isInstalled) {
+    $path = $request->getUri()->getPath();
+    
+    // Allow static files, install, and api/install endpoints
+    if ($path === '/install' || $path === '/api/install' || strpos($path, '/css/') === 0 || strpos($path, '/js/') === 0) {
+        if ($isInstalled && $path === '/install') {
+            $response = new \Slim\Psr7\Response();
+            return $response->withHeader('Location', '/')->withStatus(302);
+        }
+        return $handler->handle($request);
+    }
+    
+    if (!$isInstalled) {
+        $response = new \Slim\Psr7\Response();
+        return $response->withHeader('Location', '/install')->withStatus(302);
+    }
+    
+    return $handler->handle($request);
+});
 
 $app->run();
