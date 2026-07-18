@@ -65,6 +65,8 @@ Desteklenen yetenekler:
   - Hafıza dostu **lazy loading** önizleme sistemi: PHP memory_limit aşımını engeller, görselleri/videoları arayüzde asenkron ve canlı yükler
   - Medya filtreleme barı: Görseller, Videolar, Sesler ve Dökümanlar arasında anlık geçiş
   - Toplu Seçim ve Çoklu Seçim: Medyaları toplu olarak işaretleyip canlı SweetAlert ilerleme çubuğuyla sırayla Telegram Drive'a yükleme (başarılı yüklenenlerin seçimi otomatik kaldırılır)
+  - **Arayüz Önizlemesi**:
+    ![WhatsApp Medya Arayüzü](php_version/public/images/dashboard_preview.png)
 
 ### `python_version`
 
