@@ -66,7 +66,7 @@ Desteklenen yetenekler:
   - Medya filtreleme barı: Görseller, Videolar, Sesler ve Dökümanlar arasında anlık geçiş
   - Toplu Seçim ve Çoklu Seçim: Medyaları toplu olarak işaretleyip canlı SweetAlert ilerleme çubuğuyla sırayla Telegram Drive'a yükleme (başarılı yüklenenlerin seçimi otomatik kaldırılır)
   - **Arayüz Önizlemesi**:
-    ![WhatsApp Medya Arayüzü](php_version/public/images/dashboard_preview.png)
+    ![WhatsApp Medya Arayüzü](php_version/public/images/dashboard_preview_mock.png)
 
 ### `python_version`
 
