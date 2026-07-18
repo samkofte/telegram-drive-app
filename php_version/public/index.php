@@ -3434,30 +3434,94 @@ $app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $requ
         return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
     
-    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=30&includeMedia=true", $config);
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=false", $config);
     
     if (isset($result['error'])) {
         $response->getBody()->write(json_encode(['error' => $result['error']]));
         return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
     
+    $cacheDir = __DIR__ . '/whatsapp_cache';
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0777, true);
+    }
+    
     $mediaMessages = [];
     if (is_array($result)) {
         foreach ($result as $msg) {
             if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio', 'voice'])) {
+                $safeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
+                $cacheFile = $cacheDir . '/' . $safeId . '.json';
+                $cachedMedia = null;
+                if (file_exists($cacheFile)) {
+                    $cachedMedia = json_decode(file_get_contents($cacheFile), true);
+                }
+                
                 $mediaMessages[] = [
                     'id' => $msg['id'],
                     'type' => $msg['type'],
                     'timestamp' => $msg['timestamp'] ?? time(),
                     'body' => $msg['body'] ?? '',
                     'fromMe' => $msg['fromMe'] ?? false,
-                    'media' => $msg['media'] ?? null
+                    'media' => $cachedMedia
                 ];
             }
         }
     }
     
     $response->getBody()->write(json_encode($mediaMessages));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($authMiddleware);
+
+$app->get('/api/whatsapp/chats/{chatId}/messages/{messageId}/preview', function (Request $request, Response $response, array $args) use ($config) {
+    $chatId = $args['chatId'];
+    $messageId = $args['messageId'];
+    
+    $sessionId = getOpenWaSessionId($config);
+    if (!$sessionId) {
+        $response->getBody()->write(json_encode(['error' => 'Oturum bulunamadı']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $cacheDir = __DIR__ . '/whatsapp_cache';
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0777, true);
+    }
+    
+    $safeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $messageId);
+    $cacheFile = $cacheDir . '/' . $safeId . '.json';
+    
+    if (file_exists($cacheFile)) {
+        $response->getBody()->write(file_get_contents($cacheFile));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    // Not in cache, fetch history with includeMedia=true
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=true", $config);
+    
+    if (isset($result['error']) || !is_array($result)) {
+        $response->getBody()->write(json_encode(['error' => 'Medyalar yüklenemedi']));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $targetMedia = null;
+    foreach ($result as $msg) {
+        // Cache any media we retrieve in this run
+        if (isset($msg['media']) && !empty($msg['media']['data'])) {
+            $mSafeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
+            file_put_contents($cacheDir . '/' . $mSafeId . '.json', json_encode($msg['media']));
+            if (($msg['id'] ?? '') === $messageId) {
+                $targetMedia = $msg['media'];
+            }
+        }
+    }
+    
+    if (!$targetMedia) {
+        $response->getBody()->write(json_encode(['error' => 'Medya verisi bulunamadı']));
+        return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $response->getBody()->write(json_encode($targetMedia));
     return $response->withHeader('Content-Type', 'application/json');
 })->add($authMiddleware);
 
@@ -3478,29 +3542,41 @@ $app->post('/api/whatsapp/upload-media', function (Request $request, Response $r
         return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
     
-    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=true", $config);
+    $cacheDir = __DIR__ . '/whatsapp_cache';
+    $safeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $messageId);
+    $cacheFile = $cacheDir . '/' . $safeId . '.json';
     
-    if (isset($result['error'])) {
-        $response->getBody()->write(json_encode(['error' => 'Mesajlar alınamadı: ' . $result['error']]));
-        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    $mediaData = null;
+    if (file_exists($cacheFile)) {
+        $mediaData = json_decode(file_get_contents($cacheFile), true);
     }
     
-    $targetMsg = null;
-    if (is_array($result)) {
-        foreach ($result as $msg) {
-            if (($msg['id'] ?? '') === $messageId) {
-                $targetMsg = $msg;
-                break;
+    if (!$mediaData) {
+        $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=true", $config);
+        
+        if (isset($result['error'])) {
+            $response->getBody()->write(json_encode(['error' => 'Mesajlar alınamadı: ' . $result['error']]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+        
+        if (is_array($result)) {
+            foreach ($result as $msg) {
+                if (isset($msg['media']) && !empty($msg['media']['data'])) {
+                    $mSafeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
+                    file_put_contents($cacheDir . '/' . $mSafeId . '.json', json_encode($msg['media']));
+                    if (($msg['id'] ?? '') === $messageId) {
+                        $mediaData = $msg['media'];
+                    }
+                }
             }
         }
     }
     
-    if (!$targetMsg || empty($targetMsg['media']['data'])) {
+    if (!$mediaData || empty($mediaData['data'])) {
         $response->getBody()->write(json_encode(['error' => 'Belirtilen medya mesajı veya base64 verisi bulunamadı.']));
         return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
     
-    $mediaData = $targetMsg['media'];
     $base64Data = $mediaData['data'];
     
     if (strpos($base64Data, ',') !== false) {

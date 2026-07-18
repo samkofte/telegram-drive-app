@@ -794,10 +794,26 @@
                         const sizeMB = m.media && m.media.sizeBytes ? (m.media.sizeBytes / 1024 / 1024).toFixed(2) + ' MB' : 'Bilinmeyen boyut';
                         
                         let previewHtml = '';
-                        if (m.type === 'image' && m.media && m.media.data) {
-                            previewHtml = `<img src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" />`;
-                        } else if (m.type === 'video' && m.media && m.media.data) {
-                            previewHtml = `<video src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" muted controls></video>`;
+                        if (m.type === 'image') {
+                            if (m.media && m.media.data) {
+                                previewHtml = `<img src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" />`;
+                            } else {
+                                const cleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
+                                previewHtml = `<div id="preview_${cleanId}" style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">
+                                    <div class="spinner-border" role="status" style="width: 1rem; height: 1rem; margin-right: 0.5rem; color: var(--primary);"></div> Önizleme Yükleniyor...
+                                </div>`;
+                                setTimeout(() => { loadMediaPreview(chatId, m.id, 'image'); }, 50);
+                            }
+                        } else if (m.type === 'video') {
+                            if (m.media && m.media.data) {
+                                previewHtml = `<video src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" muted controls></video>`;
+                            } else {
+                                const cleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
+                                previewHtml = `<div id="preview_${cleanId}" style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">
+                                    <div class="spinner-border" role="status" style="width: 1rem; height: 1rem; margin-right: 0.5rem; color: var(--primary);"></div> Önizleme Yükleniyor...
+                                </div>`;
+                                setTimeout(() => { loadMediaPreview(chatId, m.id, 'video'); }, 50);
+                            }
                         } else {
                             let icon = '📂 Döküman';
                             if (m.type === 'image') icon = '🖼️ Görsel';
@@ -824,6 +840,37 @@
             } catch (e) {
                 console.error("Failed to load chat media:", e);
                 mediaContainer.innerHTML = '<div style="text-align: center; color: var(--danger); padding-top: 5rem;">Dosyalar yüklenirken bir hata oluştu.</div>';
+            }
+        }
+
+        async function loadMediaPreview(chatId, messageId, type) {
+            try {
+                const res = await fetch(`/api/whatsapp/chats/${chatId}/messages/${encodeURIComponent(messageId)}/preview`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const media = await res.json();
+                
+                const cleanId = messageId.replace(/[^a-zA-Z0-9]/g, '_');
+                const previewEl = document.getElementById('preview_' + cleanId);
+                
+                if (previewEl && media && media.data) {
+                    if (type === 'image') {
+                        previewEl.outerHTML = `<img src="data:${media.mimetype};base64,${media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" />`;
+                    } else if (type === 'video') {
+                        previewEl.outerHTML = `<video src="data:${media.mimetype};base64,${media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" muted controls></video>`;
+                    }
+                } else if (previewEl) {
+                    const icon = type === 'image' ? '🖼️ Görsel' : '🎥 Video';
+                    previewEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">${icon} (Büyük/Önizlenemedi)</span>`;
+                }
+            } catch (e) {
+                console.error("Failed to load preview:", e);
+                const cleanId = messageId.replace(/[^a-zA-Z0-9]/g, '_');
+                const previewEl = document.getElementById('preview_' + cleanId);
+                if (previewEl) {
+                    const icon = type === 'image' ? '🖼️ Görsel' : '🎥 Video';
+                    previewEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">${icon} (Hata)</span>`;
+                }
             }
         }
 
