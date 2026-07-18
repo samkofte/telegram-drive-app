@@ -3453,10 +3453,6 @@ $app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $requ
                 if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio', 'voice'])) {
                     $safeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
                     $cacheFile = $cacheDir . '/' . $safeId . '.json';
-                    $cachedMedia = null;
-                    if (file_exists($cacheFile)) {
-                        $cachedMedia = json_decode(file_get_contents($cacheFile), true);
-                    }
                     
                     $mediaMessages[] = [
                         'id' => $msg['id'],
@@ -3464,7 +3460,8 @@ $app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $requ
                         'timestamp' => $msg['timestamp'] ?? time(),
                         'body' => $msg['body'] ?? '',
                         'fromMe' => $msg['fromMe'] ?? false,
-                        'media' => $cachedMedia
+                        'media' => null,
+                        'has_preview' => file_exists($cacheFile)
                     ];
                 }
             }

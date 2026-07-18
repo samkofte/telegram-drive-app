@@ -16,3 +16,5 @@ python_version/config/.env
 # Local databases / logs
 *.db
 php_version/public/MadelineProto.log
+php_version/database.sqlite
+php_version/public/whatsapp_cache/
