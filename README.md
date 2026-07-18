@@ -65,8 +65,22 @@ Desteklenen yetenekler:
   - Hafıza dostu **lazy loading** önizleme sistemi: PHP memory_limit aşımını engeller, görselleri/videoları arayüzde asenkron ve canlı yükler
   - Medya filtreleme barı: Görseller, Videolar, Sesler ve Dökümanlar arasında anlık geçiş
   - Toplu Seçim ve Çoklu Seçim: Medyaları toplu olarak işaretleyip canlı SweetAlert ilerleme çubuğuyla sırayla Telegram Drive'a yükleme (başarılı yüklenenlerin seçimi otomatik kaldırılır)
-  - **Arayüz Önizlemesi**:
-    ![WhatsApp Medya Arayüzü](php_version/public/images/dashboard_preview_mock.png)
+
+## Arayüz Önizlemeleri (Mock Data)
+
+Aşağıda projenin web panelinden alınan, tamamen anonim ve taklit (mock) verilerle oluşturulmuş ekran görüntüleri yer almaktadır:
+
+### 1. Ana Dosya Yöneticisi (Dashboard)
+![Ana Sayfa](php_version/public/images/dashboard_home_mock.png)
+
+### 2. WhatsApp Medya Aktarım Paneli
+![WhatsApp Medya Arayüzü](php_version/public/images/dashboard_preview_mock.png)
+
+### 3. Paylaşım Yönetim Merkezi
+![Paylaşım Merkezi](php_version/public/images/dashboard_shares_mock.png)
+
+### 4. Profil ve API Erişim Ayarları
+![Profil Ayarları](php_version/public/images/dashboard_profile_mock.png)
 
 ### `python_version`
 
