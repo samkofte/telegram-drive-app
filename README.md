@@ -58,6 +58,13 @@ Desteklenen yetenekler:
 - coklu secim ile paylasim koleksiyonu olusturma
 - secili dosyalari tek ZIP olarak indirme
 - buyuk dosyalarda chunk metadata ile yeniden birlestirme
+- **WhatsApp Medya Aktarımı ve Entegrasyonu** (OpenWA / whatsapp-web.js köprüsü ile):
+  - QR kod okutarak kişisel sohbetleri ve grupları listeleme
+  - Sohbet geçmişindeki son 100 medyayı anında tarama
+  - PHP sunucu tarafında akıllı önbellek (`public/whatsapp_cache/`): İndirilen görseller bir kez önbelleğe alınır, sonraki yüklemeler ve Telegram transferleri milisaniyeler sürer
+  - Hafıza dostu **lazy loading** önizleme sistemi: PHP memory_limit aşımını engeller, görselleri/videoları arayüzde asenkron ve canlı yükler
+  - Medya filtreleme barı: Görseller, Videolar, Sesler ve Dökümanlar arasında anlık geçiş
+  - Toplu Seçim ve Çoklu Seçim: Medyaları toplu olarak işaretleyip canlı SweetAlert ilerleme çubuğuyla sırayla Telegram Drive'a yükleme (başarılı yüklenenlerin seçimi otomatik kaldırılır)
 
 ### `python_version`
 
@@ -141,6 +148,7 @@ Son donemde eklenen veya guclendirilen alanlar:
 - cop kutusundan Telegram dahil kalici silme
 - buyuk dosyalar icin parcali upload ve indirme
 - PHP dashboard icin yeni CSS/JS ayrimi
+- **WhatsApp Medya Entegrasyonu**: OpenWA motoru ile tam entegrasyon, asenkron lazy-loading görsel/video önizleme arayüzü, sunucu taraflı disk önbelleklemesi (caching), filtreleme çubuğu, Tümünü Seç seçeneği ve SweetAlert destekli toplu Telegram Drive aktarım aracı.
 
 ## Lisans
 
