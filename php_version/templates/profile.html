@@ -319,6 +319,22 @@
                         <h3 style="font-weight: 800;" id="waSelectedChatTitle">Medya Seçin</h3>
                         <button class="btn btn-outline" onclick="disconnectWhatsApp()" style="padding:0.4rem 0.8rem; font-size:0.85rem; border-color:var(--danger); color:var(--danger);">Bağlantıyı Kopar</button>
                     </div>
+                    <div id="waMediaToolbar" style="display: none; flex-direction: column; gap: 0.8rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary btn-sm filter-btn" onclick="filterMedia('all', this)" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 6px;">Tümü</button>
+                            <button class="btn btn-outline btn-sm filter-btn" onclick="filterMedia('image', this)" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 6px;">🖼️ Görseller</button>
+                            <button class="btn btn-outline btn-sm filter-btn" onclick="filterMedia('video', this)" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 6px;">🎥 Videolar</button>
+                            <button class="btn btn-outline btn-sm filter-btn" onclick="filterMedia('audio_voice', this)" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 6px;">🎵 Sesler</button>
+                            <button class="btn btn-outline btn-sm filter-btn" onclick="filterMedia('document', this)" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 6px;">📂 Dökümanlar</button>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.2rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin: 0;">
+                                <input type="checkbox" id="selectAllMediaCheckbox" onchange="toggleSelectAllMedia(this.checked)" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);" />
+                                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Tümünü Seç</span>
+                            </label>
+                            <button class="btn btn-primary" id="btnBulkUpload" onclick="uploadSelectedMedia()" disabled style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;">📥 Seçilenleri Drive'a Yükle (0)</button>
+                        </div>
+                    </div>
                     <div style="flex: 1; overflow-y: auto;" id="waChatMediaContainer">
                         <div style="text-align: center; color: var(--text-muted); padding-top: 5rem;">Medya dosyalarını görüntülemek için sol taraftan bir sohbet seçin.</div>
                     </div>
@@ -572,6 +588,8 @@
 
         let waStatusInterval = null;
         let activeWaChatId = null;
+        let activeWaChatMessages = [];
+        let activeWaChatFilter = 'all';
         let isStartingSession = false;
 
         async function checkWhatsAppStatus() {
@@ -781,59 +799,23 @@
             
             const mediaContainer = document.getElementById('waChatMediaContainer');
             mediaContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding-top: 5rem;">Medya dosyaları yükleniyor...</div>';
+            document.getElementById('waMediaToolbar').style.display = 'none';
             
             try {
                 const res = await fetch(`/api/whatsapp/chats/${chatId}/media-messages`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const messages = await res.json();
                 
-                mediaContainer.innerHTML = '';
+                activeWaChatMessages = messages;
+                
+                // Reset filter active styles
+                document.querySelectorAll('.filter-btn').forEach((btn, idx) => {
+                    if (idx === 0) btn.className = 'btn btn-primary btn-sm filter-btn';
+                    else btn.className = 'btn btn-outline btn-sm filter-btn';
+                });
                 
                 if (messages && messages.length > 0) {
-                    mediaContainer.innerHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">` + messages.map(m => {
-                        const dateStr = new Date(m.timestamp * 1000).toLocaleString();
-                        const sizeMB = m.media && m.media.sizeBytes ? (m.media.sizeBytes / 1024 / 1024).toFixed(2) + ' MB' : 'Bilinmeyen boyut';
-                        
-                        let previewHtml = '';
-                        if (m.type === 'image') {
-                            if (m.media && m.media.data) {
-                                previewHtml = `<img src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" />`;
-                            } else {
-                                const cleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
-                                previewHtml = `<div id="preview_${cleanId}" style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">
-                                    <div class="spinner-border" role="status" style="width: 1rem; height: 1rem; margin-right: 0.5rem; color: var(--primary);"></div> Önizleme Yükleniyor...
-                                </div>`;
-                                setTimeout(() => { loadMediaPreview(chatId, m.id, 'image'); }, 50);
-                            }
-                        } else if (m.type === 'video') {
-                            if (m.media && m.media.data) {
-                                previewHtml = `<video src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" muted controls></video>`;
-                            } else {
-                                const cleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
-                                previewHtml = `<div id="preview_${cleanId}" style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">
-                                    <div class="spinner-border" role="status" style="width: 1rem; height: 1rem; margin-right: 0.5rem; color: var(--primary);"></div> Önizleme Yükleniyor...
-                                </div>`;
-                                setTimeout(() => { loadMediaPreview(chatId, m.id, 'video'); }, 50);
-                            }
-                        } else {
-                            let icon = '📂 Döküman';
-                            if (m.type === 'image') icon = '🖼️ Görsel';
-                            else if (m.type === 'video') icon = '🎥 Video';
-                            else if (m.type === 'audio' || m.type === 'voice') icon = '🎵 Ses Kaydı';
-                            previewHtml = `<div style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">${icon}</div>`;
-                        }
-                        
-                        return `
-                            <div class="glass-pane" style="padding: 1rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; display: flex; flex-direction: column; gap: 0.5rem; justify-content: space-between; background: rgba(15,23,42,0.3);">
-                                <div>${previewHtml}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; margin-top: 0.2rem;">${m.body || m.media?.filename || 'Medya Dosyası'}</div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-top:0.3rem;">
-                                    <span>${sizeMB}</span>
-                                    <span>${dateStr}</span>
-                                </div>
-                                <button class="btn btn-primary" onclick="uploadWhatsAppMedia('${chatId}', '${m.id}')" style="width:100%; padding:0.5rem; border-radius:6px; font-size:0.8rem; margin-top:0.5rem;">📥 Drive'a Yükle</button>
-                            </div>
-                        `;
-                    }).join('') + `</div>`;
+                    document.getElementById('waMediaToolbar').style.display = 'flex';
+                    renderMediaGrid(messages);
                 } else {
                     mediaContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding-top: 5rem;">Bu sohbette paylaşılmış medya dosyası bulunamadı.</div>';
                 }
@@ -841,6 +823,149 @@
                 console.error("Failed to load chat media:", e);
                 mediaContainer.innerHTML = '<div style="text-align: center; color: var(--danger); padding-top: 5rem;">Dosyalar yüklenirken bir hata oluştu.</div>';
             }
+        }
+
+        function renderMediaGrid(messages) {
+            const mediaContainer = document.getElementById('waChatMediaContainer');
+            mediaContainer.innerHTML = '';
+            
+            // Reset the select all checkbox
+            document.getElementById('selectAllMediaCheckbox').checked = false;
+            updateSelectedCount();
+            
+            if (messages && messages.length > 0) {
+                mediaContainer.innerHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">` + messages.map(m => {
+                    const dateStr = new Date(m.timestamp * 1000).toLocaleString();
+                    const sizeMB = m.media && m.media.sizeBytes ? (m.media.sizeBytes / 1024 / 1024).toFixed(2) + ' MB' : 'Bilinmeyen boyut';
+                    
+                    let previewHtml = '';
+                    if (m.type === 'image') {
+                        if (m.media && m.media.data) {
+                            previewHtml = `<img src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" />`;
+                        } else {
+                            const cleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
+                            previewHtml = `<div id="preview_${cleanId}" style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">
+                                <div class="spinner-border" role="status" style="width: 1rem; height: 1rem; margin-right: 0.5rem; color: var(--primary);"></div> Önizleme Yükleniyor...
+                            </div>`;
+                            setTimeout(() => { loadMediaPreview(activeWaChatId, m.id, 'image'); }, 50);
+                        }
+                    } else if (m.type === 'video') {
+                        if (m.media && m.media.data) {
+                            previewHtml = `<video src="data:${m.media.mimetype};base64,${m.media.data}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 0.3rem;" muted controls></video>`;
+                        } else {
+                            const cleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
+                            previewHtml = `<div id="preview_${cleanId}" style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">
+                                <div class="spinner-border" role="status" style="width: 1rem; height: 1rem; margin-right: 0.5rem; color: var(--primary);"></div> Önizleme Yükleniyor...
+                            </div>`;
+                            setTimeout(() => { loadMediaPreview(activeWaChatId, m.id, 'video'); }, 50);
+                        }
+                    } else {
+                        let icon = '📂 Döküman';
+                        if (m.type === 'image') icon = '🖼️ Görsel';
+                        else if (m.type === 'video') icon = '🎥 Video';
+                        else if (m.type === 'audio' || m.type === 'voice') icon = '🎵 Ses Kaydı';
+                        previewHtml = `<div style="height: 140px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 6px; font-weight: 700; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.3rem; border: 1px dashed rgba(255,255,255,0.05);">${icon}</div>`;
+                    }
+                    
+                    const cardCleanId = m.id.replace(/[^a-zA-Z0-9]/g, '_');
+                    return `
+                        <div class="glass-pane media-card" id="card_${cardCleanId}" onclick="handleMediaCardClick(event, '${m.id}')" style="position: relative; padding: 1rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; display: flex; flex-direction: column; gap: 0.5rem; justify-content: space-between; background: rgba(15,23,42,0.3); transition: all 0.2s; cursor: pointer;">
+                            <input type="checkbox" class="media-checkbox" data-message-id="${m.id}" onclick="event.stopPropagation(); updateSelectedCount();" style="position: absolute; top: 15px; right: 15px; z-index: 10; width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;" />
+                            <div>${previewHtml}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; margin-top: 0.2rem;">${m.body || m.media?.filename || 'Medya Dosyası'}</div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-top:0.3rem;">
+                                <span>${sizeMB}</span>
+                                <span>${dateStr}</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); uploadWhatsAppMedia('${activeWaChatId}', '${m.id}')" style="width:100%; padding:0.5rem; border-radius:6px; font-size:0.8rem; margin-top:0.5rem; z-index:5;">📥 Drive'a Yükle</button>
+                        </div>
+                    `;
+                }).join('') + `</div>`;
+            } else {
+                mediaContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding-top: 5rem;">Bu filtreye uygun medya dosyası bulunamadı.</div>';
+            }
+        }
+
+        function handleMediaCardClick(event, messageId) {
+            if (event.target.tagName.toLowerCase() === 'button' || event.target.tagName.toLowerCase() === 'input') {
+                return;
+            }
+            const checkbox = document.querySelector(`.media-checkbox[data-message-id="${messageId}"]`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                updateSelectedCount();
+            }
+        }
+
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.media-checkbox');
+            const checked = document.querySelectorAll('.media-checkbox:checked');
+            const btnBulk = document.getElementById('btnBulkUpload');
+            
+            if (btnBulk) {
+                btnBulk.textContent = `📥 Seçilenleri Drive'a Yükle (${checked.length})`;
+                if (checked.length > 0) {
+                    btnBulk.removeAttribute('disabled');
+                } else {
+                    btnBulk.setAttribute('disabled', 'true');
+                }
+            }
+            
+            const selectAllCheckbox = document.getElementById('selectAllMediaCheckbox');
+            if (selectAllCheckbox) {
+                if (checkboxes.length > 0 && checked.length === checkboxes.length) {
+                    selectAllCheckbox.checked = true;
+                } else {
+                    selectAllCheckbox.checked = false;
+                }
+            }
+            
+            checkboxes.forEach(cb => {
+                const messageId = cb.getAttribute('data-message-id');
+                const cleanId = messageId.replace(/[^a-zA-Z0-9]/g, '_');
+                const card = document.getElementById('card_' + cleanId);
+                if (card) {
+                    if (cb.checked) {
+                        card.style.borderColor = 'var(--primary)';
+                        card.style.background = 'rgba(99, 102, 241, 0.15)';
+                    } else {
+                        card.style.borderColor = 'rgba(255,255,255,0.05)';
+                        card.style.background = 'rgba(15,23,42,0.3)';
+                    }
+                }
+            });
+        }
+
+        function toggleSelectAllMedia(isChecked) {
+            const checkboxes = document.querySelectorAll('.media-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+            updateSelectedCount();
+        }
+
+        function filterMedia(filterType, element) {
+            activeWaChatFilter = filterType;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'btn btn-outline btn-sm filter-btn';
+            });
+            if (element) {
+                element.className = 'btn btn-primary btn-sm filter-btn';
+            }
+            
+            let filtered = activeWaChatMessages;
+            if (filterType === 'image') {
+                filtered = activeWaChatMessages.filter(m => m.type === 'image');
+            } else if (filterType === 'video') {
+                filtered = activeWaChatMessages.filter(m => m.type === 'video');
+            } else if (filterType === 'audio_voice') {
+                filtered = activeWaChatMessages.filter(m => m.type === 'audio' || m.type === 'voice');
+            } else if (filterType === 'document') {
+                filtered = activeWaChatMessages.filter(m => m.type === 'document');
+            }
+            
+            renderMediaGrid(filtered);
         }
 
         async function loadMediaPreview(chatId, messageId, type) {
@@ -872,6 +997,69 @@
                     previewEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">${icon} (Hata)</span>`;
                 }
             }
+        }
+
+        async function uploadSelectedMedia() {
+            const checked = document.querySelectorAll('.media-checkbox:checked');
+            const total = checked.length;
+            if (total === 0) return;
+            
+            const messageIds = Array.from(checked).map(cb => cb.getAttribute('data-message-id'));
+            
+            Swal.fire({
+                title: 'Toplu Aktarım Başlatılıyor...',
+                html: `WhatsApp'tan <b>${total} adet dosya</b> indirilip Telegram bulut depolama alanınıza sırayla aktarılacak.<br><br><div style="font-size:0.9rem; color:var(--text-muted);" id="bulkUploadProgress">İşlem başlatılıyor... (0 / ${total})</div>`,
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (let i = 0; i < total; i++) {
+                const messageId = messageIds[i];
+                const progressEl = document.getElementById('bulkUploadProgress');
+                if (progressEl) {
+                    progressEl.innerHTML = `Aktarılıyor: <b>${i + 1} / ${total}</b> dosya...<br><span style="font-size:0.8rem; color:var(--primary);">Lütfen sayfayı kapatmayın veya yenilemeyin.</span>`;
+                }
+                
+                try {
+                    const res = await fetch('/api/whatsapp/upload-media', {
+                        method: 'POST',
+                        headers: { 
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ chatId: activeWaChatId, messageId })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        successCount++;
+                        const cb = document.querySelector(`.media-checkbox[data-message-id="${encodeURIComponent(messageId)}"]`) || 
+                                   document.querySelector(`.media-checkbox[data-message-id="${messageId}"]`);
+                        if (cb) {
+                            cb.checked = false;
+                        }
+                    } else {
+                        failCount++;
+                    }
+                } catch (e) {
+                    console.error("Bulk upload item failed:", e);
+                    failCount++;
+                }
+            }
+            
+            updateSelectedCount();
+            
+            Swal.fire({
+                icon: failCount === 0 ? 'success' : 'warning',
+                title: 'Toplu Aktarım Tamamlandı',
+                html: `Başarılı: <b>${successCount}</b><br>Başarısız: <b>${failCount}</b>`,
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff'
+            });
         }
 
         async function uploadWhatsAppMedia(chatId, messageId) {
