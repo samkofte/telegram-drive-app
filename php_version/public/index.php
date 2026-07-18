@@ -3447,24 +3447,26 @@ $app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $requ
     }
     
     $mediaMessages = [];
-    if (is_array($result)) {
+    if (is_array($result) && !isset($result['error'])) {
         foreach ($result as $msg) {
-            if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio', 'voice'])) {
-                $safeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
-                $cacheFile = $cacheDir . '/' . $safeId . '.json';
-                $cachedMedia = null;
-                if (file_exists($cacheFile)) {
-                    $cachedMedia = json_decode(file_get_contents($cacheFile), true);
+            if (is_array($msg) && isset($msg['id']) && is_string($msg['id'])) {
+                if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio', 'voice'])) {
+                    $safeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
+                    $cacheFile = $cacheDir . '/' . $safeId . '.json';
+                    $cachedMedia = null;
+                    if (file_exists($cacheFile)) {
+                        $cachedMedia = json_decode(file_get_contents($cacheFile), true);
+                    }
+                    
+                    $mediaMessages[] = [
+                        'id' => $msg['id'],
+                        'type' => $msg['type'] ?? '',
+                        'timestamp' => $msg['timestamp'] ?? time(),
+                        'body' => $msg['body'] ?? '',
+                        'fromMe' => $msg['fromMe'] ?? false,
+                        'media' => $cachedMedia
+                    ];
                 }
-                
-                $mediaMessages[] = [
-                    'id' => $msg['id'],
-                    'type' => $msg['type'],
-                    'timestamp' => $msg['timestamp'] ?? time(),
-                    'body' => $msg['body'] ?? '',
-                    'fromMe' => $msg['fromMe'] ?? false,
-                    'media' => $cachedMedia
-                ];
             }
         }
     }
@@ -3506,12 +3508,14 @@ $app->get('/api/whatsapp/chats/{chatId}/messages/{messageId}/preview', function 
     
     $targetMedia = null;
     foreach ($result as $msg) {
-        // Cache any media we retrieve in this run
-        if (isset($msg['media']) && !empty($msg['media']['data'])) {
-            $mSafeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
-            file_put_contents($cacheDir . '/' . $mSafeId . '.json', json_encode($msg['media']));
-            if (($msg['id'] ?? '') === $messageId) {
-                $targetMedia = $msg['media'];
+        if (is_array($msg) && isset($msg['id']) && is_string($msg['id'])) {
+            // Cache any media we retrieve in this run
+            if (isset($msg['media']) && !empty($msg['media']['data'])) {
+                $mSafeId = preg_replace('/[^a-zA-Z0-9_@.]/', '_', $msg['id']);
+                file_put_contents($cacheDir . '/' . $mSafeId . '.json', json_encode($msg['media']));
+                if ($msg['id'] === $messageId) {
+                    $targetMedia = $msg['media'];
+                }
             }
         }
     }
