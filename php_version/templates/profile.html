@@ -798,8 +798,8 @@
                             previewHtml = '🖼️ Görsel';
                         } else if (m.type === 'video') {
                             previewHtml = '🎥 Video';
-                        } else if (m.type === 'audio') {
-                            previewHtml = '🎵 Ses';
+                        } else if (m.type === 'audio' || m.type === 'voice') {
+                            previewHtml = '🎵 Ses Kaydı';
                         }
                         
                         return `

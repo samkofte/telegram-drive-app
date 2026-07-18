@@ -3444,7 +3444,7 @@ $app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $requ
     $mediaMessages = [];
     if (is_array($result)) {
         foreach ($result as $msg) {
-            if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio'])) {
+            if (in_array($msg['type'] ?? '', ['image', 'video', 'document', 'audio', 'voice'])) {
                 $mediaMessages[] = [
                     'id' => $msg['id'],
                     'type' => $msg['type'],
