@@ -3434,7 +3434,7 @@ $app->get('/api/whatsapp/chats/{chatId}/media-messages', function (Request $requ
         return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
     
-    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=100&includeMedia=false", $config);
+    $result = callOpenWaApi('GET', "/api/sessions/{$sessionId}/messages/{$chatId}/history?limit=30&includeMedia=true", $config);
     
     if (isset($result['error'])) {
         $response->getBody()->write(json_encode(['error' => $result['error']]));
